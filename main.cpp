@@ -5,12 +5,12 @@
 #include <vector>
 #include <netinet/in.h>
 #include <iostream>
-#include "server.hpp"
+#include "Server.hpp"
 
 int main()
 {
-    server Server;
-    Server.init();
-    Server.run();
+    Server server;
+    server.init();
+    server.run();
     return (0);
 }

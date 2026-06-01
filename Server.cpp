@@ -1,6 +1,6 @@
-#include "server.hpp"
+#include "Server.hpp"
 
-void server::init()
+void Server::init()
 {
     _serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -14,7 +14,7 @@ void server::init()
     serverPoll.events = POLLIN;
     _fds.push_back(serverPoll);
 }
-void server::run()
+void Server::run()
 {
     listen(_serverSocket, 3);
 
@@ -29,33 +29,48 @@ void server::run()
             if (_fds[i].revents & POLLIN)
                 recieveData(_fds[i].fd);
         }
-        if (_fds.size() == 1) // cunado no ha adie coectado apaga
+        if (_fds.size() == 1) // cuando no hay nadie conectado apaga
             break ;
     }
 }
-void server::acceptClient()
+void Server::acceptClient()
 {
     int clientSocket = accept(_fds[0].fd, NULL, NULL);
     pollfd clientPoll;
     clientPoll.fd = clientSocket;
     clientPoll.events = POLLIN;
     _fds.push_back(clientPoll);
+    Client nclient(clientSocket);
+    _clients.push_back(nclient);
     std::cout << "new client has joined" << std::endl;
 }
-void server::recieveData(int fd)
+void Server::recieveData(int fd)
 {
     char buffer[1024];
     int bytes = recv(fd, buffer, 1023, 0);
     if (bytes <= 0)
         return (clientDesconected(fd));
     buffer[bytes] = '\0';
-    std::string message = "client ";
-    message += std::to_string(fd);
+    std::string message;
+    if (searchClient(fd)->getNick() == "")
+    {
+        message = "client ";
+        message += std::to_string(fd);
+    }
+    else
+        message = searchClient(fd)->getNick();
+    message += ": ";
     message += buffer;
+    if (message.substr(10, 5) == "NICK ") // aqui pondras seguramente los comandos
+    {
+    //    message.pop_back();  peta pero hay que quitar el \n del final
+        addNick(message.substr(15), fd);
+        return ;
+    }
     sendMessage(message, fd);
     std::cout << "client" << fd << ": " << buffer;
 }
-void server::clientDesconected(int fd)
+void Server::clientDesconected(int fd)
 {
     for (int i = 0; i < _fds.size(); i++)
     {
@@ -68,11 +83,28 @@ void server::clientDesconected(int fd)
         }
     }
 }
-void server::sendMessage(std::string message, int fd)
+void Server::sendMessage(std::string message, int fd)
 {
     for (int i = 1; i < _fds.size(); i++)
     {
         if (_fds[i].fd != fd)
             send(_fds[i].fd, message.c_str(), message.size(), 0);
     }
+}
+void Server::addNick(std::string nick, int fd)
+{
+    Client *client = searchClient(fd);
+    if (client == nullptr)
+        return ;
+    (*client).setNick(nick);
+}
+Client *Server::searchClient(int fd)
+{
+    for (int i = 0; i < _clients.size(); i++)
+    {
+        if (_clients[i].getFd() == fd)
+            return (&_clients[i]);
+    }
+    std::cout << "no clients found" << std::endl;
+    return (nullptr);
 }

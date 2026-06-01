@@ -1,23 +1,23 @@
-#include <sys/socket.h>
-#include <poll.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <vector>
-#include <netinet/in.h>
-#include <iostream>
-#include <unistd.h>
+#ifndef SERVER_HPP
+#define SERVER_HPP
 
-class server
+#include "Client.hpp"
+
+class Server
 {
     private:
         int _serverSocket;
         std::vector<pollfd> _fds;
+        std::vector<Client> _clients;
     public:
-        server() {};
+        Server() {};
         void init();
         void run();
         void acceptClient();
         void recieveData(int fd);
         void clientDesconected(int fd);
         void sendMessage(std::string message, int fd);
+        void addNick(std::string, int fd);
+        Client *searchClient(int fd);
 };
+#endif
