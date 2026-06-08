@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <iostream>
 #include <unistd.h>
+#include <sstream>
 
 class Client
 {
