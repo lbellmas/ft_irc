@@ -60,7 +60,8 @@ void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar var
     buffer[bytes] = '\0';
     std::string message;
     std::string nick = searchClient(fd)->getNick();
-    if (nick == "")
+
+    /*if (nick == "")
     {
         message = "client ";
         std::stringstream ss;
@@ -69,16 +70,17 @@ void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar var
     }
     else
         message = nick;
-    message += ": ";
-    message += buffer;
+    message.append(": ");
+    message.append(buffer);
     if (message.size() > 10 && message.substr(10, 5) == "NICK ") // aqui pondras seguramente los comandos
     {
-        std::cout << message << std::endl;
         addNick(message.substr(15, bytes - 6), fd);
         return ;
     }
-    sendMessage(message, fd);
     std::cout << "client" << fd << ": " << buffer;
+    std::cout << "message " << message << std::endl;*/
+    sendMessage(message, fd);
+    
 }
 void Server::clientDesconected(int fd)
 {
@@ -118,6 +120,7 @@ void Server::addNick(std::string nick, int fd)
     if (client == NULL)
         return ;
     (*client).setNick(nick);
+    std::cout << "Nick" << client->getNick() << std::endl;
 }
 Client *Server::searchClient(int fd)
 {
