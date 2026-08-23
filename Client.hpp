@@ -19,12 +19,17 @@ class Client
         std::string username;
         std::string realname;
         std::string buffer;
+        bool isPassSet;
+        bool isUserSet;
+        bool isNickSet;
         enum ClientStatus
         {
+            UNREGISTERED,
             CONNECTED,
             AUTHENTICATED,
             REGISTERED
         };
+        ClientStatus status;
         std::vector<std::string> channels;
         bool isOperator;
     public:
@@ -36,6 +41,8 @@ class Client
         void setUser(std::string user);
         void setReal(std::string real);
         void setBuffer(std::string buff);
+        void addBuffer(std::string buff);
+
         void setStatus(int status);
         void setOperator(bool status);
 
@@ -46,9 +53,18 @@ class Client
         std::string getUser();
         std::string getReal();
         std::string getBuff();
-        int getStatus();
+        int getStatus() const;
         std::vector<std::string> getChannels();
         bool getOperator();
+        bool getPassSet();
+        bool getNickSet();
+        bool getUserSet();
+        void setNickSet();
+        void setUserSet();
+        bool isAuth();
+        bool isUnReg();
+        void setPass();
+        void setReg();
 };
 
 #endif

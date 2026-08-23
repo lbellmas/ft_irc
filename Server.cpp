@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "utils.hpp"
 
 void Server::init()
 {
@@ -54,13 +55,19 @@ void Server::acceptClient()
 void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar varios comandos a la vez aprovecha el buffer de la clase client
 {
     char buffer[1024];
+    std::size_t pos;
     int bytes = recv(fd, buffer, 1023, 0);
     if (bytes <= 0)
         return (clientDesconected(fd));
     buffer[bytes] = '\0';
-    std::string message;
-    std::string nick = searchClient(fd)->getNick();
-
+    Client *cli = searchClient(fd);
+    cli->addBuffer(buffer);
+    while ((pos = cli->getBuff().find("\r\n")) != std::string::npos){
+        std::string commandStr = cli->getBuff().substr(0,pos);
+        cli->setBuffer(cli->getBuff().erase(0, pos+2));
+        IRCmd cmd = getCommand(commandStr);
+        runCommand(cmd, cli);
+    }
     /*if (nick == "")
     {
         message = "client ";
@@ -79,9 +86,68 @@ void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar var
     }
     std::cout << "client" << fd << ": " << buffer;
     std::cout << "message " << message << std::endl;*/
-    sendMessage(message, fd);
+    //sendMessage(message, fd);
     
 }
+void Server::runCommand(IRCmd command, Client *c){
+    if (c->isUnReg()){
+        if(command.cmd == "PASS"){
+            if (c->getNickSet() ^ c->getUserSet()){
+                std::string message = "462 ERR_ALREADYREGISTERED\r\n";
+                send(c->getFd(), message.c_str(), message.size(), 0);
+                //clientDesconected(c->getFd());
+                return ;
+            }
+            else if (c->getNickSet() && c->getUserSet()){
+                std::string message = "464 PASSWDMISMATCH\r\n";
+                send(c->getFd(), message.c_str(), message.size(), 0);
+                clientDesconected(c->getFd());
+                return ;
+            }
+            c->setPass();
+        }
+        else if (command.cmd == "NICK"){
+            if (c->getUserSet() && !c->getPassSet()){
+                std::string message = "464 PASSWDMISMATCH\r\n";
+                send(c->getFd(), message.c_str(), message.size(), 0);
+                clientDesconected(c->getFd());
+                return ;
+            }
+            else {
+                c->setNick(command.params[0]);
+                c->setNickSet();
+            } 
+        }
+        else if (command.cmd == "USER"){
+            if (c->getNickSet() && !c->getPassSet()){
+                std::string message = "464 PASSWDMISMATCH\r\n";
+                send(c->getFd(), message.c_str(), message.size(), 0);
+                clientDesconected(c->getFd());
+                return ;
+            }else {
+                c->setUser(command.params[0]);
+                c->setUserSet();
+            } 
+        }
+        else{
+            std::string message = "Not registered\r\n";
+            send(c->getFd(), message.c_str(), message.size(), 0);
+            clientDesconected(c->getFd());
+            return ;
+        }
+        if (c->getNickSet() && c->getUserSet() && c->getPassSet())
+            {
+                c->setReg();
+                std::string message = "001 Registered correctly, welcome!\r\n";
+                send(c->getFd(), message.c_str(), message.size(), 0);
+            }
+    } else {
+        if (command.cmd == "PASS" || command.cmd == "USER"){}
+        else if (command.cmd == "PRIVMSG") cmdMsg();
+        else if (command.cmd == "JOIN") cmdJoin();
+    }
+}
+
 void Server::clientDesconected(int fd)
 {
     for (size_t i = 0; i < _fds.size(); i++)

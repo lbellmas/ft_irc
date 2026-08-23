@@ -2,6 +2,7 @@
 #define SERVER_HPP
 
 #include "Client.hpp"
+#include "utils.hpp"
 
 class Server
 {
@@ -18,6 +19,7 @@ class Server
         void clientDesconected(int fd);
         void sendMessage(std::string message, int fd);
         void addNick(std::string, int fd);
+        void runCommand(IRCmd command, Client * c);
         Client *searchClient(int fd);
 };
 #endif

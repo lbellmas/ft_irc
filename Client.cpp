@@ -8,6 +8,10 @@ Client::Client()
     realname = "";
     buffer = "";
     isOperator = 0;
+    isPassSet = false;
+    isNickSet = false;
+    isUserSet = false;
+    status = Client::UNREGISTERED;
 }
 Client::Client(int nfd)
 {
@@ -17,6 +21,10 @@ Client::Client(int nfd)
     realname = "";
     buffer = "";
     isOperator = 0;
+    isPassSet = false;
+    isNickSet = false;
+    isUserSet = false;
+    status = Client::UNREGISTERED;
 }
 Client::~Client() 
 {
@@ -41,6 +49,10 @@ void Client::setReal(std::string real)
 void Client::setBuffer(std::string buff)
 {
     buffer = buff;
+}
+void Client::addBuffer(std::string buff)
+{
+    buffer += buff;
 }
 // void Client::setStatus(int status); este ns como va
 void Client::setOperator(bool status)
@@ -73,7 +85,9 @@ std::string Client::getBuff()
 {
     return (buffer);
 }
-// int Client::getStatus() const; ns como va esto
+ int Client::getStatus() const{
+    return status;
+ }
 std::vector<std::string> Client::getChannels() 
 {
     return (channels);
@@ -81,4 +95,40 @@ std::vector<std::string> Client::getChannels()
 bool Client::getOperator() 
 {
     return (isOperator);
+}
+
+bool Client::getPassSet(){
+    return isPassSet;
+}
+
+bool Client::getUserSet(){
+    return isUserSet;
+}
+
+bool Client::getNickSet(){
+    return isNickSet;
+}
+
+void Client::setUserSet(){
+    isUserSet = true;
+}
+
+void Client::setNickSet(){
+    isNickSet = true;
+}
+
+bool Client::isAuth(){
+    return Client::AUTHENTICATED == status;
+}
+
+bool Client::isUnReg(){
+    return Client::UNREGISTERED == status;
+}
+
+void Client::setPass(){
+    isPassSet = true;
+}
+
+void Client::setReg(){
+    status = Client::REGISTERED;
 }
