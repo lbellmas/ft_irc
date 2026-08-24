@@ -38,7 +38,9 @@ void Server::run()
 }
 void Server::acceptClient()
 {
-    int clientSocket = accept(_fds[0].fd, NULL, NULL);
+    struct sockaddr_in clientAddr;
+    socklen_t addrLen = sizeof(clientAddr);
+    int clientSocket = accept(_fds[0].fd, (struct sockaddr*)&clientAddr, &addrLen);
     if (clientSocket < 0)
     {
         std::cout << "client has filed joining" << std::endl;
@@ -49,6 +51,7 @@ void Server::acceptClient()
     clientPoll.events = POLLIN;
     _fds.push_back(clientPoll);
     Client nclient(clientSocket);
+    nclient.setHostname(inet_ntoa(clientAddr.sin_addr));
     _clients.push_back(nclient);
     std::cout << "new client has joined" << std::endl;
 }
@@ -114,6 +117,7 @@ void Server::runCommand(IRCmd command, Client *c){
                 return ;
             }
             else {
+                //Check no one has that nick first
                 c->setNick(command.params[0]);
                 c->setNickSet();
             } 
@@ -142,9 +146,17 @@ void Server::runCommand(IRCmd command, Client *c){
                 send(c->getFd(), message.c_str(), message.size(), 0);
             }
     } else {
-        if (command.cmd == "PASS" || command.cmd == "USER"){}
-        else if (command.cmd == "PRIVMSG") cmdMsg();
-        else if (command.cmd == "JOIN") cmdJoin();
+        if (command.cmd == "PASS" || command.cmd == "USER"){
+            std::string message = "462 ERR_ALREADYREGISTERED\r\n";
+            send(c->getFd(), message.c_str(), message.size(), 0);
+            return;
+        }
+        else if (command.cmd == "PRIVMSG") {
+            cmdMsg(command, c, this);
+        }
+        else if (command.cmd == "JOIN") {
+            //cmdJoin(command, c, this);
+        }
     }
 }
 
@@ -197,4 +209,20 @@ Client *Server::searchClient(int fd)
     }
     std::cout << "no clients found" << std::endl;
     return (NULL);
+}
+Client *Server::searchClient(std::string nick)
+{
+    for (size_t i = 0; i < _clients.size(); i++)
+    {
+        if (_clients[i].getNick() == nick)
+            return (&_clients[i]);
+    }
+    std::cout << "no clients found" << std::endl;
+    return (NULL);
+}
+
+Channel *Server::searchChannel(std::string cn){
+
+    cn = "hi!";
+    return NULL;
 }

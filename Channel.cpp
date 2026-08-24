@@ -9,7 +9,7 @@ std::string Channel::getName() const {
 }
 
 bool Channel::hasClient(int fd) const{
-    for (int i = 0; i < _clientFds.size(); i++){
+    for (std::size_t i = 0; i < _clientFds.size(); i++){
         if (fd == _clientFds[i]) return true;
     }
     return false;

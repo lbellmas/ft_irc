@@ -3,8 +3,8 @@ CXX		= c++
 CFLAGS	= -Wextra -Werror -Wall -std=c++98
 
 # Todos los .cpp en el directorio actual
-SRC		= main.cpp Server.cpp Client.cpp utils.cpp
-HPP		= Server.hpp Client.hpp utils.hpp
+SRC		= main.cpp Server.cpp Client.cpp utils.cpp Channel.cpp
+HPP		= Server.hpp Client.hpp utils.hpp Channel.hpp
 # Genera los .o correspondientes
 OBJ		= $(SRC:.cpp=.o)
 

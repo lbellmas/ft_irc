@@ -132,3 +132,11 @@ void Client::setPass(){
 void Client::setReg(){
     status = Client::REGISTERED;
 }
+
+void Client::setHostname(std::string hn){
+    hostName = hn;
+}
+
+std::string Client::getHostname() const {
+    return hostName;
+}

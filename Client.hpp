@@ -22,6 +22,7 @@ class Client
         bool isPassSet;
         bool isUserSet;
         bool isNickSet;
+        std::string hostName;
         enum ClientStatus
         {
             UNREGISTERED,
@@ -65,6 +66,9 @@ class Client
         bool isUnReg();
         void setPass();
         void setReg();
+        void setHostname(std::string hn);
+        std::string getHostname() const;
+
 };
 
 #endif

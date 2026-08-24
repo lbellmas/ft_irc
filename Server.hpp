@@ -3,6 +3,10 @@
 
 #include "Client.hpp"
 #include "utils.hpp"
+#include <arpa/inet.h>
+#include "Channel.hpp"
+
+struct IRCmd;
 
 class Server
 {
@@ -10,6 +14,7 @@ class Server
         int _serverSocket;
         std::vector<pollfd> _fds;
         std::vector<Client> _clients;
+        std::vector<Channel> _channels;
     public:
         Server() {};
         void init();
@@ -21,5 +26,7 @@ class Server
         void addNick(std::string, int fd);
         void runCommand(IRCmd command, Client * c);
         Client *searchClient(int fd);
+        Client *searchClient(std::string nick);
+        Channel *searchChannel(std::string cn);
 };
 #endif
