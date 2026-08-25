@@ -28,5 +28,6 @@ class Server
         Client *searchClient(int fd);
         Client *searchClient(std::string nick);
         Channel *searchChannel(std::string cn);
+        void addChannel(Channel c);
 };
 #endif

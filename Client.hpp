@@ -68,6 +68,7 @@ class Client
         void setReg();
         void setHostname(std::string hn);
         std::string getHostname() const;
+        std::string getPrefix();
 
 };
 

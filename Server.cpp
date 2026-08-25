@@ -155,7 +155,7 @@ void Server::runCommand(IRCmd command, Client *c){
             cmdMsg(command, c, this);
         }
         else if (command.cmd == "JOIN") {
-            //cmdJoin(command, c, this);
+            cmdJoin(command, c, this);
         }
     }
 }
@@ -185,11 +185,7 @@ void Server::clientDesconected(int fd)
 }
 void Server::sendMessage(std::string message, int fd)
 {
-    for (size_t i = 1; i < _fds.size(); i++)
-    {
-        if (_fds[i].fd != fd)
-            send(_fds[i].fd, message.c_str(), message.size(), 0);
-    }
+    send(fd, message.c_str(), message.size(), 0);
 }
 void Server::addNick(std::string nick, int fd)
 {
@@ -222,7 +218,14 @@ Client *Server::searchClient(std::string nick)
 }
 
 Channel *Server::searchChannel(std::string cn){
-
-    cn = "hi!";
+    for (size_t i = 0; i < _channels.size(); i++){
+        if (cn == _channels[i].getName()){
+            return (&_channels[i]);
+        }
+    }
     return NULL;
+}
+
+void Server::addChannel(Channel c){
+    _channels.push_back(c);
 }

@@ -140,3 +140,7 @@ void Client::setHostname(std::string hn){
 std::string Client::getHostname() const {
     return hostName;
 }
+
+std::string Client::getPrefix() {
+    return ":" + getNick() + "!" + getUser() + "@" + getHostname() + " ";
+}

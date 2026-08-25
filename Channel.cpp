@@ -2,6 +2,10 @@
 
 Channel::Channel(std::string name){
     _name = name;
+    _topic = "";
+    _key = "";
+    _user_limit = -1;
+    _invite_only = false;
 }
 
 std::string Channel::getName() const {
@@ -30,4 +34,23 @@ void Channel::removeClient(int fd){
             return;
         }
     }
+}
+
+bool Channel::isInviteOnly() const {
+    return _invite_only;
+}
+
+std::string Channel::getTopic() const {
+    return _topic;
+}
+
+void Channel::changeTopic(std::string newTopic) {
+    _topic = newTopic;
+}
+
+bool Channel::isInvited(std::string name){
+    for(size_t i = 0; i < _invited.size(); i++){
+        if (_invited[i] == name) return true;
+    }
+    return false;
 }
