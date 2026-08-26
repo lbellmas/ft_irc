@@ -37,9 +37,11 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
                     if (clients[i] != c->getFd())
                         s->sendMessage(c->getPrefix() + command.params[1] + "\n\r", clients[i]);
                 }
+            } else {
+                s->sendMessage("ERROR, USER NOT PART OF CHANNEL", c->getFd());
             }
         } else {
-            //error message to client
+            s->sendMessage("ERROR, CHANNEL DOES NOT EXIST", c->getFd());
         }
     } else {
         Client *reciever;
@@ -59,23 +61,53 @@ void cmdJoin(IRCmd command, Client *c, Server *s){ //STILL NEED TO CHEKC USER LI
             if (chan->isInvited(c->getNick())){
                 chan->addClient(c->getFd());
             } else {
-                //SEND ERROR MESSAGE
+                s->sendMessage("ERROR, TRYING TO JOIN INVITE ONLY CHANNEL", c->getFd());
             }
         } else {
             if (!chan->hasClient(c->getFd()))
                 chan->addClient(c->getFd());
             else {
-                //ERROR MESASGE
+                s->sendMessage("ERROR, USER ALREADY IN CHANNEL", c->getFd());
             }
         }
     } else {
         std::cout << "Created Channel!" << std::endl;
         Channel Ch(command.params[0]);
+        std::cout << Ch.getName() << std::endl;
         Ch.addClient(c->getFd());
+        Ch.addOperator(c->getFd());
         s->addChannel(Ch);
     }
 }
 
+void cmdMode(IRCmd command, Client *c, Server *s){
+    if (command.params[0][0] == '#'){
+        Channel *ch;
+        if ((ch = s->searchChannel(command.params[0])) != NULL){
+            if (ch->isOperator(c->getFd())){
+                
+            } else if (ch->hasClient(c->getFd())){
+                //NOT AUTHORIZED (NOT OPERATOR OF THE CHANNEL)
+            } else {
+                //ISNT IN CHANNEL
+            }
+        } else {
+            //CHANNEL DOES NOT EXIST
+        }
+    }
+}
+
+void cmdTopic(IRCmd command, Client *c, Server *s){
+
+}
+
+/*void cmdKick(IRCmd command, Client *c, Server *s){
+
+}
+
+void cmdInvite(IRCmd command, Client *c, Server *s){
+
+}*/ 
 /*
 std::cout << "cmd.cmd: " << cmd.cmd << std::endl;
 for (size_t i = 0; i < cmd.params.size(); i++){

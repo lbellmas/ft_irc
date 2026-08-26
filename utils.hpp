@@ -19,5 +19,7 @@ class Server;
 IRCmd getCommand(std::string buffer);
 void cmdMsg(IRCmd command, Client *c, Server *s);
 void cmdJoin(IRCmd command, Client *c, Server *s);
+void cmdMode(IRCmd command, Client *c, Server *s);
+void cmdTopic(IRCmd command, Client *c, Server *s);
 
 #endif

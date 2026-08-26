@@ -70,27 +70,7 @@ void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar var
         cli->setBuffer(cli->getBuff().erase(0, pos+2));
         IRCmd cmd = getCommand(commandStr);
         runCommand(cmd, cli);
-    }
-    /*if (nick == "")
-    {
-        message = "client ";
-        std::stringstream ss;
-        ss << fd;
-        message += ss.str();
-    }
-    else
-        message = nick;
-    message.append(": ");
-    message.append(buffer);
-    if (message.size() > 10 && message.substr(10, 5) == "NICK ") // aqui pondras seguramente los comandos
-    {
-        addNick(message.substr(15, bytes - 6), fd);
-        return ;
-    }
-    std::cout << "client" << fd << ": " << buffer;
-    std::cout << "message " << message << std::endl;*/
-    //sendMessage(message, fd);
-    
+    }    
 }
 void Server::runCommand(IRCmd command, Client *c){
     if (c->isUnReg()){
@@ -117,7 +97,13 @@ void Server::runCommand(IRCmd command, Client *c){
                 return ;
             }
             else {
-                //Check no one has that nick first
+                for(size_t i = 0; i < _clients.size(); i++){
+                    if (command.params[0] == _clients[i].getNick()){
+                        std::string message = "NICK IN USE\r\n";
+                        send(c->getFd(), message.c_str(), message.size(), 0);
+                        return ;
+                    }
+                }
                 c->setNick(command.params[0]);
                 c->setNickSet();
             } 
@@ -156,6 +142,17 @@ void Server::runCommand(IRCmd command, Client *c){
         }
         else if (command.cmd == "JOIN") {
             cmdJoin(command, c, this);
+        }
+        else if (command.cmd == "MODE"){
+            cmdMode(command, c, this);
+        } 
+        else if (command.cmd == "TOPIC"){
+            cmdTopic(command, c, this);
+        }
+        else{
+            std::string message = "UNKNOWN COMMAND\r\n";
+            send(c->getFd(), message.c_str(), message.size(), 0);
+            return;
         }
     }
 }
