@@ -147,7 +147,7 @@ void Server::runCommand(IRCmd command, Client *c){
             cmdMode(command, c, this);
         } 
         else if (command.cmd == "TOPIC"){
-            cmdTopic(command, c, this);
+            //cmdTopic(command, c, this);
         }
         else{
             std::string message = "UNKNOWN COMMAND\r\n";

@@ -31,11 +31,11 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
     if (command.params[0][0] == '#'){
         Channel *chan;
         if((chan = s->searchChannel(command.params[0])) != NULL){
-            if (chan->hasClient(c->getFd())){
-                std::vector<int> clients = chan->getClients();
+            if (chan->hasClient(c->getNick())){
+                std::vector<std::string> clients = chan->getClients();
                 for(size_t i = 0; i < clients.size(); i++){
-                    if (clients[i] != c->getFd())
-                        s->sendMessage(c->getPrefix() + command.params[1] + "\n\r", clients[i]);
+                    if (clients[i] != c->getNick())
+                        s->sendMessage(c->getPrefix() + command.params[1] + "\n\r", s->searchClient(clients[i])->getFd());
                 }
             } else {
                 s->sendMessage("ERROR, USER NOT PART OF CHANNEL", c->getFd());
@@ -59,13 +59,13 @@ void cmdJoin(IRCmd command, Client *c, Server *s){ //STILL NEED TO CHEKC USER LI
     if((chan = s->searchChannel(command.params[0])) != NULL){
         if (chan->isInviteOnly()){ //NEED TO CHECK USER LIMIT
             if (chan->isInvited(c->getNick())){
-                chan->addClient(c->getFd());
+                chan->addClient(c->getNick());
             } else {
                 s->sendMessage("ERROR, TRYING TO JOIN INVITE ONLY CHANNEL", c->getFd());
             }
         } else {
-            if (!chan->hasClient(c->getFd()))
-                chan->addClient(c->getFd());
+            if (!chan->hasClient(c->getNick()))
+                chan->addClient(c->getNick());
             else {
                 s->sendMessage("ERROR, USER ALREADY IN CHANNEL", c->getFd());
             }
@@ -74,8 +74,8 @@ void cmdJoin(IRCmd command, Client *c, Server *s){ //STILL NEED TO CHEKC USER LI
         std::cout << "Created Channel!" << std::endl;
         Channel Ch(command.params[0]);
         std::cout << Ch.getName() << std::endl;
-        Ch.addClient(c->getFd());
-        Ch.addOperator(c->getFd());
+        Ch.addClient(c->getNick());
+        Ch.addOperator(c->getNick());
         s->addChannel(Ch);
     }
 }
@@ -84,9 +84,9 @@ void cmdMode(IRCmd command, Client *c, Server *s){
     if (command.params[0][0] == '#'){
         Channel *ch;
         if ((ch = s->searchChannel(command.params[0])) != NULL){
-            if (ch->isOperator(c->getFd())){
+            if (ch->isOperator(c->getNick())){
                 
-            } else if (ch->hasClient(c->getFd())){
+            } else if (ch->hasClient(c->getNick())){
                 //NOT AUTHORIZED (NOT OPERATOR OF THE CHANNEL)
             } else {
                 //ISNT IN CHANNEL
@@ -97,9 +97,9 @@ void cmdMode(IRCmd command, Client *c, Server *s){
     }
 }
 
-void cmdTopic(IRCmd command, Client *c, Server *s){
+/*void cmdTopic(IRCmd command, Client *c, Server *s){
 
-}
+}*/
 
 /*void cmdKick(IRCmd command, Client *c, Server *s){
 

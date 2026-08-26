@@ -6,14 +6,17 @@
 #include <vector>
 #include "utils.hpp"
 
+struct IRCmd;
+class Server;
+
 class Channel{
     private:
         std::string _name;
         std::string _key;
         std::string _topic;
-        std::vector<int> _clientFds;
+        std::vector<std::string> _clientFds;
         std::vector<std::string> _invited;
-        std::vector<int> _operators;
+        std::vector<std::string> _operators;
         int _user_limit;
         bool _invite_only;
         bool _topic_restricted;
@@ -22,16 +25,16 @@ class Channel{
     public:
         Channel(std::string name);
         std::string getName() const;
-        void addClient(int fd);
-        void addOperator(int fd);
-        void removeClient(int fd);
-        bool hasClient(int fd) const;
+        void addClient(std::string client);
+        void addOperator(std::string client);
+        void removeClient(std::string client);
+        bool hasClient(std::string client) const;
         bool isInviteOnly() const;
         std::string getTopic() const;
         void changeTopic(std::string newTopic);
-        std::vector<int> getClients() const;
+        std::vector<std::string> getClients() const;
         bool isInvited(std::string name);
-        bool isOperator(int fd);
+        bool isOperator(std::string client);
         void changeModes(IRCmd command, Client *c, Server *s);
         
 };

@@ -4,7 +4,7 @@ Channel::Channel(std::string name){
     _name = name;
     _topic = "";
     _key = "";
-    _user_limit = -1;
+    _user_limit = 0;
     _invite_only = false;
     _topic_restricted = false;
 }
@@ -13,24 +13,24 @@ std::string Channel::getName() const {
     return _name;
 }
 
-bool Channel::hasClient(int fd) const{
+bool Channel::hasClient(std::string client) const{
     for (std::size_t i = 0; i < _clientFds.size(); i++){
-        if (fd == _clientFds[i]) return true;
+        if (client == _clientFds[i]) return true;
     }
     return false;
 }
 
-std::vector<int> Channel::getClients() const{
+std::vector<std::string> Channel::getClients() const{
     return _clientFds;
 }
 
-void Channel::addClient(int fd){
-    _clientFds.push_back(fd);
+void Channel::addClient(std::string client){
+    _clientFds.push_back(client);
 }
 
-void Channel::removeClient(int fd){
-    for (std::vector<int>::iterator it = _clientFds.begin(); it != _clientFds.end(); it++){
-        if (*it == fd){
+void Channel::removeClient(std::string client){
+    for (std::vector<std::string>::iterator it = _clientFds.begin(); it != _clientFds.end(); it++){
+        if (*it == client){
             _clientFds.erase(it);
             return;
         }
@@ -56,21 +56,22 @@ bool Channel::isInvited(std::string name){
     return false;
 }
 
-bool Channel::isOperator(int fd){
+bool Channel::isOperator(std::string client){
     for(size_t i = 0; i < _operators.size(); i++){
-        if (_operators[i] == fd) return true;
+        if (_operators[i] == client) return true;
     }
     return false;
 }
 
-void Channel::addOperator(int fd){
-    _operators.push_back(fd);
+void Channel::addOperator(std::string client){
+    _operators.push_back(client);
 }
 
 void Channel::changeModes(IRCmd command, Client *c, Server *s){
     bool type;
     if (command.params[0][0] != '+' && command.params[0][0] != '-'){
-        // ERROR MESSAGE
+        std::string message = ": is unkown mode char to me";
+        s->sendMessage(message.insert(0, 1, command.params[0][0]), c->getFd());
         return ;
     } 
     int paramsIndex = 2;
@@ -84,17 +85,30 @@ void Channel::changeModes(IRCmd command, Client *c, Server *s){
             else _key = "";
         }
         else if (command.params[0][i] == 'o') {
-            /*if (type) {
-                _operators.push_back()
+            if (hasClient(command.params[paramsIndex])){
+                if (type) {
+                    _operators.push_back(command.params[paramsIndex++]);
+                } else {
+                    std::vector<std::string>::iterator it;
+                    for(it = _operators.begin(); it != _operators.end(); it++){
+                        if (*it == command.params[paramsIndex]) _operators.erase(it);
+                    }
+                    if (it == _operators.end()){
+                        //ERROR MESSAGE, USER WAS NOT AN OPERATOR
+                    }
+                    paramsIndex++;
+                }
+            } else {
+                //ERROR USER NOT IN CHANNEL
             }
-            for(size_t i = 0; i < _operators.size(); i++){
-                Client *c = s->searchClient(_operators[i]);
-                if ()
-            }*/
         }
-        else if (command.params[0][i] == 'l') type = false;
-
-
-        
+        else if (command.params[0][i] == 'l'){
+            if (type) {
+                int limit = std::atoi(command.params[paramsIndex++].c_str());
+                if (limit > 0) _user_limit = limit;
+                else _user_limit = 0;
+            }
+            else _user_limit = 0;
+        }   
     }
 }

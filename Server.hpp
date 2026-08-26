@@ -7,6 +7,7 @@
 #include "Channel.hpp"
 
 struct IRCmd;
+class Channel;
 
 class Server
 {
