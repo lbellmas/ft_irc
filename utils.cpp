@@ -30,12 +30,15 @@ IRCmd getCommand(std::string buffer){
 void cmdMsg(IRCmd command, Client *c, Server *s){
     if (command.params[0][0] == '#'){
         Channel *chan;
-        if((chan = s->searchChannel(command.params[0])) != NULL){
+        std::string name = command.params[0];
+        if((chan = s->searchChannel(command.params[0].erase(0,1))) != NULL){
             if (chan->hasClient(c->getNick())){
+                std::string message = c->getPrefix().append("PRIVMSG " + name+ " :").append(command.params[1]).append("\r\n");
+                std::cout << "Ms " << message << std::endl;
                 std::vector<std::string> clients = chan->getClients();
                 for(size_t i = 0; i < clients.size(); i++){
-                    if (clients[i] != c->getNick())
-                        s->sendMessage(c->getPrefix() + command.params[1] + "\n\r", s->searchClient(clients[i])->getFd());
+                    //if (clients[i] != c->getNick())
+                        s->sendMessage(message, s->searchClient(clients[i])->getFd());
                 }
             } else {
                 s->sendMessage("ERROR, USER NOT PART OF CHANNEL", c->getFd());
@@ -45,30 +48,38 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
         }
     } else {
         Client *reciever;
-        std::cout << "Nick to send: " << command.params[0] << std::endl;
+        std::cout << "Message " << command.params[1] << std::endl;
         if ((reciever = s->searchClient(command.params[0])) != NULL){
             std::cout << "Reciever name :" << reciever->getNick() << std::endl;
-            s->sendMessage(c->getPrefix() + command.params[1] + "\n\r", reciever->getFd());
+            std::string message = c->getPrefix().append("PRIVMSG " + reciever->getNick() + " :").append(command.params[1]).append("\r\n");
+            std::cout << "mssg" << message << std::endl;
+            s->sendMessage(message, reciever->getFd());
         } else {
             s->sendMessage("Error sending message! Nick not in use", reciever->getFd());
         }
     }
 }
-void cmdJoin(IRCmd command, Client *c, Server *s){ //STILL NEED TO CHEKC USER LIMIT
+void cmdJoin(IRCmd command, Client *c, Server *s){ 
     Channel *chan;
-    if((chan = s->searchChannel(command.params[0])) != NULL){
-        if (chan->isInviteOnly()){ //NEED TO CHECK USER LIMIT
-            if (chan->isInvited(c->getNick())){
-                chan->addClient(c->getNick());
-            } else {
-                s->sendMessage("ERROR, TRYING TO JOIN INVITE ONLY CHANNEL", c->getFd());
-            }
+    if((chan = s->searchChannel(command.params[0].erase(0,1))) != NULL){
+        std::cout << "JOINED channel : " << chan->getName() << std::endl;
+        std::cout << chan ->getNumUsers() << "    " << chan->getUserLimit() << "\n";
+        if (chan->getNumUsers() + 1 <= chan->getUserLimit() || chan->getUserLimit() == 0){
+            if (chan->isInviteOnly()){
+                if (chan->isInvited(c->getNick())){
+                    chan->addClient(c->getNick());
+                } else {
+                    s->sendMessage("ERROR, TRYING TO JOIN INVITE ONLY CHANNEL", c->getFd());
+                }
+                } else {
+                    if (!chan->hasClient(c->getNick()))
+                        chan->addClient(c->getNick());
+                    else {
+                        s->sendMessage("ERROR, USER ALREADY IN CHANNEL", c->getFd());
+                    }
+                }
         } else {
-            if (!chan->hasClient(c->getNick()))
-                chan->addClient(c->getNick());
-            else {
-                s->sendMessage("ERROR, USER ALREADY IN CHANNEL", c->getFd());
-            }
+            s->sendMessage("ERROR, CHANNEL HAS TOO MANY USERS", c->getFd());
         }
     } else {
         std::cout << "Created Channel!" << std::endl;
@@ -83,16 +94,16 @@ void cmdJoin(IRCmd command, Client *c, Server *s){ //STILL NEED TO CHEKC USER LI
 void cmdMode(IRCmd command, Client *c, Server *s){
     if (command.params[0][0] == '#'){
         Channel *ch;
-        if ((ch = s->searchChannel(command.params[0])) != NULL){
+        if ((ch = s->searchChannel(command.params[0].erase(0,1))) != NULL){
             if (ch->isOperator(c->getNick())){
-                
+                ch->changeModes(command, c, s);
             } else if (ch->hasClient(c->getNick())){
-                //NOT AUTHORIZED (NOT OPERATOR OF THE CHANNEL)
+                s->sendMessage("ERROR, NOT AUTHORIZED TO CHANGE MODES", c->getFd());
             } else {
-                //ISNT IN CHANNEL
+                s->sendMessage("ERROR, TRYING TO CHANGE MODES FROM A CHANNEL YOU ARE NOT PART OF", c->getFd());
             }
         } else {
-            //CHANNEL DOES NOT EXIST
+            s->sendMessage("ERROR, CHANNEL DOES NOT EXIST", c->getFd());
         }
     }
 }

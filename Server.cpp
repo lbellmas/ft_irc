@@ -4,11 +4,12 @@
 void Server::init()
 {
     _serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-
     struct sockaddr_in direccion;
     direccion.sin_family = AF_INET;
     direccion.sin_addr.s_addr = INADDR_ANY;
-    direccion.sin_port = htons(6667);
+    direccion.sin_port = htons(_port);
+    int opt = 1;
+    setsockopt(_serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     if (bind(_serverSocket, (struct sockaddr*)&direccion, sizeof(direccion)) < 0)
         exit(-1);
     pollfd serverPoll;
@@ -73,6 +74,10 @@ void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar var
     }    
 }
 void Server::runCommand(IRCmd command, Client *c){
+    std::cout << "cmd.cmd: " << command.cmd << std::endl;
+    for (size_t i = 0; i < command.params.size(); i++){
+        std::cout << "cmd.params: " << command.params[i] << std::endl;
+    }
     if (c->isUnReg()){
         if(command.cmd == "PASS"){
             if (c->getNickSet() ^ c->getUserSet()){
@@ -86,6 +91,12 @@ void Server::runCommand(IRCmd command, Client *c){
                 send(c->getFd(), message.c_str(), message.size(), 0);
                 clientDesconected(c->getFd());
                 return ;
+            }
+            if (command.params[0] != _password){
+                std::string message = "464 PASSWDMISMATCH\r\n";
+                send(c->getFd(), message.c_str(), message.size(), 0);
+                clientDesconected(c->getFd());
+                //return ;
             }
             c->setPass();
         }
@@ -118,8 +129,16 @@ void Server::runCommand(IRCmd command, Client *c){
                 c->setUser(command.params[0]);
                 c->setUserSet();
             } 
+        } else if (command.cmd == "CAP"){
+            if (command.params[0] == "LS"){
+                sendMessage(":server CAP * LS :\r\n", c->getFd());
+            }
         }
         else{
+            std::cout << "cmd.cmd: " << command.cmd << std::endl;
+            for (size_t i = 0; i < command.params.size(); i++){
+                std::cout << "cmd.params: " << command.params[i] << std::endl;
+            }
             std::string message = "Not registered\r\n";
             send(c->getFd(), message.c_str(), message.size(), 0);
             clientDesconected(c->getFd());
@@ -149,7 +168,7 @@ void Server::runCommand(IRCmd command, Client *c){
         else if (command.cmd == "TOPIC"){
             //cmdTopic(command, c, this);
         }
-        else{
+        else if (command.cmd != "CAP"){
             std::string message = "UNKNOWN COMMAND\r\n";
             send(c->getFd(), message.c_str(), message.size(), 0);
             return;
@@ -165,8 +184,8 @@ void Server::clientDesconected(int fd)
         {
             close(fd);
             _fds.erase(_fds.begin() + i);
-            std::cout << "client" << " desconected" << std::endl;
-            return ;
+            std::cout << "client" << " disconected" << std::endl;
+            break;
         }
     }
     for (size_t i = 0; i < _clients.size(); i++)
@@ -175,8 +194,8 @@ void Server::clientDesconected(int fd)
         {
             close(fd);
             _clients.erase(_clients.begin() + i);
-            std::cout << "client" << " desconected" << std::endl;
-            return ;
+            std::cout << "client" << " disconected" << std::endl;
+            break ;
         }
     }
 }

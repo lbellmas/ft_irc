@@ -14,7 +14,7 @@ class Channel{
         std::string _name;
         std::string _key;
         std::string _topic;
-        std::vector<std::string> _clientFds;
+        std::vector<std::string> _clients;
         std::vector<std::string> _invited;
         std::vector<std::string> _operators;
         int _user_limit;
@@ -36,6 +36,8 @@ class Channel{
         bool isInvited(std::string name);
         bool isOperator(std::string client);
         void changeModes(IRCmd command, Client *c, Server *s);
+        int getNumUsers() const;
+        int getUserLimit() const;
         
 };
 

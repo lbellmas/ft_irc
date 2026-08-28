@@ -13,11 +13,16 @@ class Server
 {
     private:
         int _serverSocket;
+        int _port;
+        std::string _password;
         std::vector<pollfd> _fds;
         std::vector<Client> _clients;
         std::vector<Channel> _channels;
     public:
-        Server() {};
+        Server(int port, std::string password) {
+            _port = port;
+            _password = password;
+        };
         void init();
         void run();
         void acceptClient();

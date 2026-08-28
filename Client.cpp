@@ -71,6 +71,7 @@ int Client::getFd()
 }
 std::string Client::getNick() 
 {
+    if (!isNickSet) return "*";
     return (nickname);
 }
 std::string Client::getUser() 

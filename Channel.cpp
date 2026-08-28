@@ -14,24 +14,24 @@ std::string Channel::getName() const {
 }
 
 bool Channel::hasClient(std::string client) const{
-    for (std::size_t i = 0; i < _clientFds.size(); i++){
-        if (client == _clientFds[i]) return true;
+    for (std::size_t i = 0; i < _clients.size(); i++){
+        if (client == _clients[i]) return true;
     }
     return false;
 }
 
 std::vector<std::string> Channel::getClients() const{
-    return _clientFds;
+    return _clients;
 }
 
 void Channel::addClient(std::string client){
-    _clientFds.push_back(client);
+    _clients.push_back(client);
 }
 
 void Channel::removeClient(std::string client){
-    for (std::vector<std::string>::iterator it = _clientFds.begin(); it != _clientFds.end(); it++){
+    for (std::vector<std::string>::iterator it = _clients.begin(); it != _clients.end(); it++){
         if (*it == client){
-            _clientFds.erase(it);
+            _clients.erase(it);
             return;
         }
     }
@@ -111,4 +111,12 @@ void Channel::changeModes(IRCmd command, Client *c, Server *s){
             else _user_limit = 0;
         }   
     }
+}
+
+int Channel::getNumUsers() const{
+    return _clients.size();
+}
+
+int Channel::getUserLimit() const {
+    return _user_limit;
 }
