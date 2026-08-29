@@ -52,10 +52,8 @@ Channels:
 
 |---------------------------------------------------------|
 
-1. Change the channel names so they have # --> Easier communicatoion (no need to erase the first char and then add it again)
-2. Send the JOIN #channel to the HEXCHAT once we join a channel.
+
 3. Test all possible options for the irc chat
-4?. Test maybe 2 hexchat connections?
 5. Check leaks
 
 |---------------------------------------------------------|
