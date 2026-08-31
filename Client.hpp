@@ -69,6 +69,7 @@ class Client
         void setHostname(std::string hn);
         std::string getHostname() const;
         std::string getPrefix();
+        void sendError(std::string code, std::string message);
 
 };
 

@@ -3,7 +3,7 @@
 Client::Client()
 {
     fd = 0;
-    nickname = "";
+    nickname = "*";
     username = "";
     realname = "";
     buffer = "";
@@ -16,7 +16,7 @@ Client::Client()
 Client::Client(int nfd)
 {
     fd = nfd;
-    nickname = "";
+    nickname = "*";
     username = "";
     realname = "";
     buffer = "";
@@ -144,4 +144,8 @@ std::string Client::getHostname() const {
 
 std::string Client::getPrefix() {
     return ":" + getNick() + "!" + getUser() + "@" + getHostname() + " ";
+}
+void Client::sendError(std::string code, std::string message){
+    std::string m = ":ft_irc42" + code + " " + nickname + " " + message + "\r\n";
+    send(fd, m.c_str(), m.size(), 0); 
 }

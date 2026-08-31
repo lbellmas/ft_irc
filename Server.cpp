@@ -152,9 +152,10 @@ void Server::runCommand(IRCmd command, Client *c){
             }
     } else {
         if (command.cmd == "PASS" || command.cmd == "USER"){
-            std::string message = "462 ERR_ALREADYREGISTERED\r\n";
-            send(c->getFd(), message.c_str(), message.size(), 0);
-            return;
+            c->sendError("462", "ERR_ALREADYREGISTERED");
+            //std::string message = "462 ERR_ALREADYREGISTERED\r\n";
+            //send(c->getFd(), message.c_str(), message.size(), 0);
+            //return;
         }
         else if (command.cmd == "PRIVMSG") {
             cmdMsg(command, c, this);

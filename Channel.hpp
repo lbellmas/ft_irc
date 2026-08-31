@@ -39,6 +39,7 @@ class Channel{
         int getNumUsers() const;
         int getUserLimit() const;
         
+        
 };
 
 #endif
