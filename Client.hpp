@@ -10,6 +10,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <sstream>
+#include <iomanip>
 
 class Client
 {
@@ -69,7 +70,7 @@ class Client
         void setHostname(std::string hn);
         std::string getHostname() const;
         std::string getPrefix();
-        void sendError(std::string code, std::string message);
+        void sendMessage(int code, std::string message);
 
 };
 

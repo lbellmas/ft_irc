@@ -24,7 +24,7 @@ void Server::run()
     while (true)
     {
         if (poll(_fds.data(), _fds.size(), -1) < 0)
-            exit(0); // hay que borrar todo
+            exit(0);
 
         if (_fds[0].revents & POLLIN)
             acceptClient();
@@ -33,7 +33,7 @@ void Server::run()
             if (_fds[i].revents & POLLIN)
                 recieveData(_fds[i].fd);
         }
-        if (_fds.size() == 1) // cuando no hay nadie conectado apaga lo puedes quitar
+        if (_fds.size() == 1)
             break ;
     }
 }
@@ -56,7 +56,7 @@ void Server::acceptClient()
     _clients.push_back(nclient);
     std::cout << "new client has joined" << std::endl;
 }
-void Server::recieveData(int fd) //falta parseo bueno porque e pueden ppasar varios comandos a la vez aprovecha el buffer de la clase client
+void Server::recieveData(int fd)
 {
     char buffer[1024];
     std::size_t pos;
@@ -80,21 +80,13 @@ void Server::runCommand(IRCmd command, Client *c){
     }
     if (c->isUnReg()){
         if(command.cmd == "PASS"){
-            if (c->getNickSet() ^ c->getUserSet()){
-                std::string message = "462 ERR_ALREADYREGISTERED\r\n";
-                send(c->getFd(), message.c_str(), message.size(), 0);
-                //clientDesconected(c->getFd());
-                return ;
-            }
-            else if (c->getNickSet() && c->getUserSet()){
-                std::string message = "464 PASSWDMISMATCH\r\n";
-                send(c->getFd(), message.c_str(), message.size(), 0);
+            if (c->getNickSet() && c->getUserSet()){
+                c->sendMessage(462, ":Unauthorized command (already registered)");
                 clientDesconected(c->getFd());
                 return ;
             }
             if (command.params[0] != _password){
-                std::string message = "464 PASSWDMISMATCH\r\n";
-                send(c->getFd(), message.c_str(), message.size(), 0);
+                c->sendMessage(464, ":Password incorrect");
                 clientDesconected(c->getFd());
                 //return ;
             }
@@ -102,16 +94,16 @@ void Server::runCommand(IRCmd command, Client *c){
         }
         else if (command.cmd == "NICK"){
             if (c->getUserSet() && !c->getPassSet()){
-                std::string message = "464 PASSWDMISMATCH\r\n";
-                send(c->getFd(), message.c_str(), message.size(), 0);
+                c->sendMessage(464, ":Password incorrect");
+                //send(c->getFd(), message.c_str(), message.size(), 0);
                 clientDesconected(c->getFd());
                 return ;
             }
             else {
                 for(size_t i = 0; i < _clients.size(); i++){
                     if (command.params[0] == _clients[i].getNick()){
-                        std::string message = "NICK IN USE\r\n";
-                        send(c->getFd(), message.c_str(), message.size(), 0);
+                        c->sendMessage(433, ":Nickname is already in use");
+                        //send(c->getFd(), message.c_str(), message.size(), 0);
                         return ;
                     }
                 }
@@ -121,8 +113,9 @@ void Server::runCommand(IRCmd command, Client *c){
         }
         else if (command.cmd == "USER"){
             if (c->getNickSet() && !c->getPassSet()){
-                std::string message = "464 PASSWDMISMATCH\r\n";
-                send(c->getFd(), message.c_str(), message.size(), 0);
+                c->sendMessage(464, ":Password incorrect");
+                //std::string message = "464 PASSWDMISMATCH\r\n";
+                //send(c->getFd(), message.c_str(), message.size(), 0);
                 clientDesconected(c->getFd());
                 return ;
             }else {
@@ -139,20 +132,20 @@ void Server::runCommand(IRCmd command, Client *c){
             for (size_t i = 0; i < command.params.size(); i++){
                 std::cout << "cmd.params: " << command.params[i] << std::endl;
             }
-            std::string message = "Not registered\r\n";
-            send(c->getFd(), message.c_str(), message.size(), 0);
+            c->sendMessage(451, ":You have not registered");
+            //std::string message = "Not registered\r\n";
+            //send(c->getFd(), message.c_str(), message.size(), 0);
             clientDesconected(c->getFd());
             return ;
         }
         if (c->getNickSet() && c->getUserSet() && c->getPassSet())
             {
                 c->setReg();
-                std::string message = "001 Registered correctly, welcome!\r\n";
-                send(c->getFd(), message.c_str(), message.size(), 0);
+                c->sendMessage(1, ":Welcome to the Internet Relay Network " + c->getPrefix().erase(0,1));
             }
     } else {
         if (command.cmd == "PASS" || command.cmd == "USER"){
-            c->sendError("462", "ERR_ALREADYREGISTERED");
+            c->sendMessage(462, ":Unauthorized command (already registered)");
             //std::string message = "462 ERR_ALREADYREGISTERED\r\n";
             //send(c->getFd(), message.c_str(), message.size(), 0);
             //return;

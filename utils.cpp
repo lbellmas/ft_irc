@@ -40,10 +40,10 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
                         s->sendMessage(message, s->searchClient(clients[i])->getFd());
                 }
             } else {
-                s->sendMessage("ERROR, USER NOT PART OF CHANNEL", c->getFd());
+                c->sendMessage(404, " :Cannot send to channel");
             }
         } else {
-            s->sendMessage("ERROR, CHANNEL DOES NOT EXIST", c->getFd());
+            c->sendMessage(403, " :No such channel");
         }
     } else {
         Client *reciever;
@@ -52,7 +52,7 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
             std::string message = c->getPrefix().append("PRIVMSG " + reciever->getNick() + " :").append(command.params[1]).append("\r\n");
             s->sendMessage(message, reciever->getFd());
         } else {
-            s->sendMessage("Error sending message! Nick not in use", reciever->getFd());
+            c->sendMessage(401, " :No such nick/channel");
         }
     }
 }
@@ -66,7 +66,7 @@ void cmdJoin(IRCmd command, Client *c, Server *s){
                     std::string message = c->getPrefix() + command.cmd + " " + command.params[0].append("\r\n");
                     s->sendMessage(message, c->getFd());
                 } else {
-                    s->sendMessage("ERROR, TRYING TO JOIN INVITE ONLY CHANNEL", c->getFd());
+                    c->sendMessage(473, " :Cannot join channel (+i)");
                 }
                 } else {
                     if (!chan->hasClient(c->getNick())){
@@ -75,11 +75,11 @@ void cmdJoin(IRCmd command, Client *c, Server *s){
                         s->sendMessage(message, c->getFd());
                     }
                     else {
-                        s->sendMessage("ERROR, USER ALREADY IN CHANNEL", c->getFd());
+                        c->sendMessage(443, chan->getName() + " :is already on channel");
                     }
                 }
         } else {
-            s->sendMessage("ERROR, CHANNEL HAS TOO MANY USERS", c->getFd());
+            c->sendMessage(471, " :Cannot join channel (+l)");
         }
     } else {
         std::cout << "Created Channel!" << std::endl;
@@ -87,7 +87,7 @@ void cmdJoin(IRCmd command, Client *c, Server *s){
         Ch.addClient(c->getNick());
         Ch.addOperator(c->getNick());
         s->addChannel(Ch);
-        std::string message = c->getPrefix() + command.cmd + " " + command.params[0].append("\r\n");;
+        std::string message = c->getPrefix() + command.cmd + " " + command.params[0].append("\r\n");
         s->sendMessage(message, c->getFd());
     }
 }
@@ -99,12 +99,12 @@ void cmdMode(IRCmd command, Client *c, Server *s){
             if (ch->isOperator(c->getNick())){
                 ch->changeModes(command, c, s);
             } else if (ch->hasClient(c->getNick())){
-                s->sendMessage("ERROR, NOT AUTHORIZED TO CHANGE MODES", c->getFd());
+                c->sendMessage(482, ch->getName() + " :You're not channel operator");
             } else {
-                s->sendMessage("ERROR, TRYING TO CHANGE MODES FROM A CHANNEL YOU ARE NOT PART OF", c->getFd());
+                c->sendMessage(442, ch->getName() + " :You're not on that channel");
             }
         } else {
-            s->sendMessage("ERROR, CHANNEL DOES NOT EXIST", c->getFd());
+            c->sendMessage(403, " :No such channel");
         }
     }
 }

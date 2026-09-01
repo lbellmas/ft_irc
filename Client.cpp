@@ -145,7 +145,11 @@ std::string Client::getHostname() const {
 std::string Client::getPrefix() {
     return ":" + getNick() + "!" + getUser() + "@" + getHostname() + " ";
 }
-void Client::sendError(std::string code, std::string message){
-    std::string m = ":ft_irc42" + code + " " + nickname + " " + message + "\r\n";
-    send(fd, m.c_str(), m.size(), 0); 
+void Client::sendMessage(int code, std::string message){
+    std::ostringstream oss;
+    oss << ":" << "ft_irc42" << " "
+        << std::setfill('0') << std::setw(3) << code << " "
+        << (nickname.empty() ? "*" : nickname) << " "
+        << message << "\r\n";
+    send(fd, oss.str().c_str(), oss.str().size(), 0); 
 }
