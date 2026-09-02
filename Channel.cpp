@@ -69,22 +69,27 @@ void Channel::addOperator(std::string client){
 
 void Channel::changeModes(IRCmd command, Client *c, Server *s){
     bool type;
-    if (command.params[0][0] != '+' && command.params[0][0] != '-'){
+    std::cout << "command.cmd: " << command.cmd << std::endl;
+    for (size_t i = 0; i < command.params.size(); i++){
+    std::cout << "command.params: " << command.params[i] << std::endl;
+    }
+    if (command.params[1][0] != '+' && command.params[1][0] != '-'){
         std::string message = ": is unkown mode char to me";
-        s->sendMessage(message.insert(0, 1, command.params[0][0]), c->getFd());
+        s->sendMessage(message.insert(0, 1, command.params[1][0]), c->getFd());
         return ;
     } 
     int paramsIndex = 2;
     for (size_t i = 0; i < command.params[0].size(); i++){
-        if (command.params[0][i] == '+') type = true;
-        else if (command.params[0][i] == '-') type = false;
-        else if (command.params[0][i] == 'i') _invite_only = type;
-        else if (command.params[0][i] == 't') _topic_restricted = type;
-        else if (command.params[0][i] == 'k'){
+        std::cout << "params[i] = " << command.params[0][i] << std::endl; 
+        if (command.params[1][i] == '+') type = true;
+        else if (command.params[1][i] == '-') type = false;
+        else if (command.params[1][i] == 'i') _invite_only = type;
+        else if (command.params[1][i] == 't') _topic_restricted = type;
+        else if (command.params[1][i] == 'k'){
             if (type) _key = command.params[paramsIndex++];
             else _key = "";
         }
-        else if (command.params[0][i] == 'o') {
+        else if (command.params[1][i] == 'o') {
             if (hasClient(command.params[paramsIndex])){
                 if (type) {
                     _operators.push_back(command.params[paramsIndex++]);
@@ -111,6 +116,8 @@ void Channel::changeModes(IRCmd command, Client *c, Server *s){
             else _user_limit = 0;
         }   
     }
+    std::cout << "TYPE: " << type << std::endl;
+    std::cout << "IsInvite only? " << _invite_only << std::endl; 
 }
 
 int Channel::getNumUsers() const{
@@ -119,4 +126,22 @@ int Channel::getNumUsers() const{
 
 int Channel::getUserLimit() const {
     return _user_limit;
+}
+
+void Channel::invite(std::string nick) {
+    _invited.push_back(nick);
+}
+
+bool Channel::wasInvited(std::string nick) const{
+    for(size_t i = 0; i < _invited.size(); i++){
+        if (_invited[i] == nick) return true;
+    }
+    return false;
+}
+
+void Channel::broadcast(std::string message, Server *s){
+    for(size_t i = 0; i < _clients.size(); i++){
+        
+        send(s->searchClient(_clients[i])->getFd(), message.c_str(), message.size(), 0);
+    }
 }

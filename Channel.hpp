@@ -38,6 +38,10 @@ class Channel{
         void changeModes(IRCmd command, Client *c, Server *s);
         int getNumUsers() const;
         int getUserLimit() const;
+        void invite(std::string nick);
+        bool wasInvited(std::string nick) const;
+        void broadcast(std::string message, Server *s);
+
         
         
 };

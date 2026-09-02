@@ -158,7 +158,11 @@ void Server::runCommand(IRCmd command, Client *c){
         }
         else if (command.cmd == "MODE"){
             cmdMode(command, c, this);
-        } 
+        } else if (command.cmd == "INVITE"){
+            cmdInvite(command, c, this);
+        } else if (command.cmd == "KICK"){
+            cmdKick(command, c, this);
+        }
         else if (command.cmd == "TOPIC"){
             //cmdTopic(command, c, this);
         }

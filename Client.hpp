@@ -71,6 +71,7 @@ class Client
         std::string getHostname() const;
         std::string getPrefix();
         void sendMessage(int code, std::string message);
+        void addChannel(std::string ch);
 
 };
 

@@ -21,5 +21,7 @@ void cmdMsg(IRCmd command, Client *c, Server *s);
 void cmdJoin(IRCmd command, Client *c, Server *s);
 void cmdMode(IRCmd command, Client *c, Server *s);
 void cmdTopic(IRCmd command, Client *c, Server *s);
+void cmdKick(IRCmd command, Client *c, Server *s);
+void cmdInvite(IRCmd command, Client *c, Server *s);
 
 #endif

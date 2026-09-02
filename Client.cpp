@@ -151,5 +151,6 @@ void Client::sendMessage(int code, std::string message){
         << std::setfill('0') << std::setw(3) << code << " "
         << (nickname.empty() ? "*" : nickname) << " "
         << message << "\r\n";
+    std::cout << oss.str() << std::endl;
     send(fd, oss.str().c_str(), oss.str().size(), 0); 
 }
