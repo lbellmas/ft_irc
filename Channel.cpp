@@ -67,54 +67,63 @@ void Channel::addOperator(std::string client){
     _operators.push_back(client);
 }
 
-void Channel::changeModes(IRCmd command, Client *c, Server *s){
-    bool type;
-    std::cout << "command.cmd: " << command.cmd << std::endl;
-    for (size_t i = 0; i < command.params.size(); i++){
-    std::cout << "command.params: " << command.params[i] << std::endl;
-    }
-    if (command.params[1][0] != '+' && command.params[1][0] != '-'){
-        std::string message = ": is unkown mode char to me";
-        s->sendMessage(message.insert(0, 1, command.params[1][0]), c->getFd());
-        return ;
-    } 
-    int paramsIndex = 2;
-    for (size_t i = 0; i < command.params[0].size(); i++){
-        std::cout << "params[i] = " << command.params[0][i] << std::endl; 
-        if (command.params[1][i] == '+') type = true;
-        else if (command.params[1][i] == '-') type = false;
-        else if (command.params[1][i] == 'i') _invite_only = type;
-        else if (command.params[1][i] == 't') _topic_restricted = type;
-        else if (command.params[1][i] == 'k'){
-            if (type) _key = command.params[paramsIndex++];
-            else _key = "";
-        }
-        else if (command.params[1][i] == 'o') {
-            if (hasClient(command.params[paramsIndex])){
-                if (type) {
-                    _operators.push_back(command.params[paramsIndex++]);
+void Channel::changeModes(IRCmd command, Client *c){
+    bool type = false;
+    if (command.params.size() > 1){
+        if (command.params[1][0] != '+' && command.params[1][0] != '-'){
+            c->sendMessage(472, std::string(1, command.params[1][0]) + " :is unknown mode char to me");
+            return ;
+        } 
+        int paramsIndex = 2;
+        for (size_t i = 0; i < command.params[0].size(); i++){
+            std::cout << "params[i] = " << command.params[0][i] << std::endl; 
+            if (command.params[1][i] == '+') type = true;
+            else if (command.params[1][i] == '-') type = false;
+            else if (command.params[1][i] == 'i') _invite_only = type;
+            else if (command.params[1][i] == 't') _topic_restricted = type;
+            else if (command.params[1][i] == 'k'){
+                if (size_t(paramsIndex) < command.params.size()){
+                    if (type) _key = command.params[paramsIndex++];
+                    else _key = "";
                 } else {
-                    std::vector<std::string>::iterator it;
-                    for(it = _operators.begin(); it != _operators.end(); it++){
-                        if (*it == command.params[paramsIndex]) _operators.erase(it);
-                    }
-                    if (it == _operators.end()){
-                        //ERROR MESSAGE, USER WAS NOT AN OPERATOR
-                    }
-                    paramsIndex++;
+                    c->sendMessage(461, command.cmd + " :Not enough parameters");
                 }
-            } else {
-                //ERROR USER NOT IN CHANNEL
             }
+            else if (command.params[1][i] == 'o') {
+                if (size_t(paramsIndex) < command.params.size()){
+                    if (hasClient(command.params[paramsIndex])){
+                        if (type) {
+                            _operators.push_back(command.params[paramsIndex++]);
+                        } else {
+                            std::vector<std::string>::iterator it;
+                            for(it = _operators.begin(); it != _operators.end(); it++){
+                                if (*it == command.params[paramsIndex]) _operators.erase(it);
+                            }
+                            if (it == _operators.end()){
+                                c->sendMessage(482, getName() + " :You're not channel operator");
+                            }
+                            paramsIndex++;
+                        }
+                    } else {
+                        c->sendMessage(442, getName() + " :You're not on that channel");
+                    }
+                } else {
+                    c->sendMessage(461, command.cmd + " :Not enough parameters");
+                }
+            }
+            else if (command.params[0][i] == 'l'){
+                if (size_t(paramsIndex) < command.params.size()){
+                    if (type) {
+                        int limit = std::atoi(command.params[paramsIndex++].c_str());
+                        if (limit > 0) _user_limit = limit;
+                        else _user_limit = 0;
+                    }
+                    else _user_limit = 0;
+                } else {
+                    c->sendMessage(461, command.cmd + " :Not enough parameters");
+                }
+            } 
         }
-        else if (command.params[0][i] == 'l'){
-            if (type) {
-                int limit = std::atoi(command.params[paramsIndex++].c_str());
-                if (limit > 0) _user_limit = limit;
-                else _user_limit = 0;
-            }
-            else _user_limit = 0;
-        }   
     }
     std::cout << "TYPE: " << type << std::endl;
     std::cout << "IsInvite only? " << _invite_only << std::endl; 
@@ -144,4 +153,8 @@ void Channel::broadcast(std::string message, Server *s){
         
         send(s->searchClient(_clients[i])->getFd(), message.c_str(), message.size(), 0);
     }
+}
+
+bool Channel::isTopicRestricted() const {
+    return _topic_restricted;
 }

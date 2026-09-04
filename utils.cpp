@@ -40,7 +40,7 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
                         s->sendMessage(message, s->searchClient(clients[i])->getFd());
                 }
             } else {
-                c->sendMessage(404, ":Cannot send to channel");
+                c->sendMessage(404, command.params[0] + " :Cannot send to channel");
             }
         } else {
             c->sendMessage(403, command.params[0] + " :No such channel");
@@ -68,7 +68,7 @@ void cmdJoin(IRCmd command, Client *c, Server *s){
                         std::string message = c->getPrefix() + command.cmd + " " + command.params[0].append("\r\n");
                         s->sendMessage(message, c->getFd());
                     } else {
-                        c->sendMessage(473, ":Cannot join channel (+i)");
+                        c->sendMessage(473, chan->getName() + " :Cannot join channel (+i)");
                     }
                 } else {
                     if (!chan->hasClient(c->getNick())){
@@ -82,7 +82,7 @@ void cmdJoin(IRCmd command, Client *c, Server *s){
                     }
                 }
             } else {
-                c->sendMessage(471, ":Cannot join channel (+l)");
+                c->sendMessage(471, chan->getName() + " :Cannot join channel (+l)");
             }
         } else {
             std::cout << "Created Channel!" << std::endl;
@@ -102,25 +102,54 @@ void cmdJoin(IRCmd command, Client *c, Server *s){
 }
 
 void cmdMode(IRCmd command, Client *c, Server *s){
-    if (command.params[0][0] == '#'){
-        Channel *ch;
+    Channel *ch;
+    if (command.params.size() > 2){
         if ((ch = s->searchChannel(command.params[0])) != NULL){
             if (ch->isOperator(c->getNick())){
-                ch->changeModes(command, c, s);
+                ch->changeModes(command, c);
             } else if (ch->hasClient(c->getNick())){
-                c->sendMessage(482, ch->getName() + ":You're not channel operator");
+                c->sendMessage(482, ch->getName() + " :You're not channel operator");
             } else {
-                c->sendMessage(442, ch->getName() + ":You're not on that channel");
+                c->sendMessage(442, ch->getName() + " :You're not on that channel");
             }
         } else {
-            c->sendMessage(403, ":No such channel");
+            c->sendMessage(403, ch->getName() + " :No such channel");
         }
     }
 }
 
-/*void cmdTopic(IRCmd command, Client *c, Server *s){
-
-}*/
+void cmdTopic(IRCmd command, Client *c, Server *s){
+    Channel *ch;
+    if ((ch = s->searchChannel(command.params[0])) != NULL){
+        if (ch->hasClient(c->getNick())){
+            std::cout << "CLient in channel!\n"; 
+            if (command.params.size() < 2){
+                std::string topic = ch->getTopic();
+                if (topic == "")
+                    c->sendMessage(331, ch->getName() + " :No topic is set");
+                else
+                    c->sendMessage(332, ch->getName() + " :" + topic);
+            } else {
+                if (ch->isOperator(c->getNick()) && !ch->isTopicRestricted()){
+                    ch->changeTopic(command.params[1]);
+                } else {
+                    c->sendMessage(482, ch->getName() + " :You're not channel operator");
+                    return ;
+                }
+                std::string mess = c->getPrefix() + "TOPIC " + ch->getName() + " :" + command.params[1] + "\r\n";
+                std::vector<std::string> clients = ch->getClients();
+                for (size_t i = 0; i < clients.size(); i++){
+                    Client *cl = s->searchClient(clients[i]);
+                    s->sendMessage(mess, cl->getFd());
+                }
+            }
+        } else {
+            c->sendMessage(442, ch->getName() + " :You're not on that channel");
+        }
+    } else {
+        c->sendMessage(403, ch->getName() + " :No such channel");   
+    }
+}
 
 void cmdKick(IRCmd command, Client *c, Server *s){
     Channel *ch = s->searchChannel(command.params[0]);
@@ -128,20 +157,28 @@ void cmdKick(IRCmd command, Client *c, Server *s){
             Client *cli = s->searchClient(command.params[1]);
             if (cli != NULL){
                 if (!ch->hasClient(c->getNick())){
-                    c->sendMessage(442, ch->getName() + ":You're not on that channel");
+                    c->sendMessage(442, ch->getName() + " :You're not on that channel");
                 }
                 if (!ch->isOperator(c->getNick())){
-                    c->sendMessage(482, ch->getName() + ":You're not channel operator");
+                    c->sendMessage(482, ch->getName() + " :You're not channel operator");
                 }
                 if (!ch->hasClient(cli->getNick())){
                     c->sendMessage(441, cli->getNick() + " " + ch->getName() + " :They aren't on that channel");
                 }
+                
+                std::string reason = "";
+                if (command.params.size() > 2) reason = command.params[2];
+                std::vector<std::string> clients = ch->getClients();
+                for (size_t i = 0; i < clients.size(); i++){
+                    Client *cl = s->searchClient(clients[i]);
+                    s->sendMessage(cl->getPrefix() + " " + command.cmd + " " + command.params[0] + " " + command.params[1] + " :" + reason +"\r\n", cl->getFd());
+                }
                 ch->removeClient(cli->getNick());
             } else {
-                c->sendMessage(401, ":No such nick/channel");
+                c->sendMessage(401, command.params[0] + " :No such nick/channel");
             }
     } else {
-        c->sendMessage(403, ":No such channel");
+        c->sendMessage(403, command.params[0] + " :No such channel");
     }
 }
 
@@ -151,10 +188,10 @@ void cmdInvite(IRCmd command, Client *c, Server *s){
         Client *cli = s->searchClient(command.params[0]);
         if (cli != NULL){
             if (!ch->hasClient(c->getNick())){
-                c->sendMessage(442, ch->getName() + ":You're not on that channel");
+                c->sendMessage(442, ch->getName() + " :You're not on that channel");
             }
             else if (!ch->isOperator(c->getNick()) && ch->isInviteOnly()){
-                c->sendMessage(482, ch->getName() + ":You're not channel operator");
+                c->sendMessage(482, ch->getName() + " :You're not channel operator");
             }
             else if (ch->hasClient(cli->getNick())){
                 c->sendMessage(443, cli->getNick() + " " + ch->getName() + " :is already on channel");
@@ -164,10 +201,10 @@ void cmdInvite(IRCmd command, Client *c, Server *s){
             }
             
         } else {
-            c->sendMessage(401, ":No such nick/channel");
+            c->sendMessage(401, command.params[0] + " :No such nick/channel");
         }
     } else {
-        c->sendMessage(403, ":No such channel");
+        c->sendMessage(403, command.params[0] + " :No such channel");
     }
 } 
 /*

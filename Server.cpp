@@ -164,9 +164,10 @@ void Server::runCommand(IRCmd command, Client *c){
             cmdKick(command, c, this);
         }
         else if (command.cmd == "TOPIC"){
-            //cmdTopic(command, c, this);
+            cmdTopic(command, c, this);
         }
-        else if (command.cmd != "CAP"){
+        else if (command.cmd != "CAP" && command.cmd != "WHO"){
+            c->sendMessage(421, c->getNick() + " " + command.cmd + " :Unknown command");
             std::string message = "UNKNOWN COMMAND\r\n";
             send(c->getFd(), message.c_str(), message.size(), 0);
             return;

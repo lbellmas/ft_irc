@@ -1,6 +1,6 @@
 NAME	= ircserv
 CXX		= c++
-CFLAGS	= -Wextra -Werror -Wall -std=c++98
+CFLAGS	= -Wextra -Werror -Wall -std=c++98 -g
 
 # Todos los .cpp en el directorio actual
 SRC		= main.cpp Server.cpp Client.cpp utils.cpp Channel.cpp

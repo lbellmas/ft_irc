@@ -35,12 +35,13 @@ class Channel{
         std::vector<std::string> getClients() const;
         bool isInvited(std::string name);
         bool isOperator(std::string client);
-        void changeModes(IRCmd command, Client *c, Server *s);
+        void changeModes(IRCmd command, Client *c);
         int getNumUsers() const;
         int getUserLimit() const;
         void invite(std::string nick);
         bool wasInvited(std::string nick) const;
         void broadcast(std::string message, Server *s);
+        bool isTopicRestricted() const ;
 
         
         
