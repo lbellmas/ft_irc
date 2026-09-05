@@ -1,0 +1,27 @@
+#ifndef UTILS_HPP
+#define UTILS_HPP
+
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include "Client.hpp"
+#include "Server.hpp"
+
+
+
+struct IRCmd{
+    std::string cmd;
+    std::vector<std::string> params;
+};
+
+class Server;
+
+IRCmd getCommand(std::string buffer);
+void cmdMsg(IRCmd command, Client *c, Server *s);
+void cmdJoin(IRCmd command, Client *c, Server *s);
+void cmdMode(IRCmd command, Client *c, Server *s);
+void cmdTopic(IRCmd command, Client *c, Server *s);
+void cmdKick(IRCmd command, Client *c, Server *s);
+void cmdInvite(IRCmd command, Client *c, Server *s);
+
+#endif

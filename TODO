@@ -1,0 +1,59 @@
+Tengo que acabar los Channels i los Servers.
+
+Servers --> Hacer el parseo de todos los comandos (PASS (check if irc server was launched with a password), NICK, USER, JOIN, PRIVMSG)
+
+Orden de connexion PASS --> NICK/USER
+
+Si NICK/USER antes de PASS, error.
+
+PASS:
+    PASS [password]
+Nick:
+    NICK [nickname] --> Changes the user's nickname. If a registered user changes their nickname, it gets broadcastedd.
+
+User:
+    USER [username] [mode(0)] *(unused) : [realName (can have spaces)]
+
+JOIN:
+    JOIN #42 --> Joins channel 42, or creates it if it doesnt exist. If they create it, they become operator.
+
+PRIVMSG:
+    Se puede hacer a un canal (PRIVMSG #canal) o a un user (PRIVMSG nick)
+
+
+
+:alice!user@host JOIN #general
+
+:Prefix (identifica quien ha enviado el mensaje)
+
+alice --> nickname
+
+user --> Username
+
+host --> IP address (SE consige del accept)
+
+
+
+Channels:
+
+    Join makes users join/create a channel. IF they create it, they are operators.
+    Para enviar un mensaje a un channel, se tiene que ser parte del channel y usar PRIVMSG #nchannel
+    Los operadores pueden usar
+        KICK / INVITE [nick]
+        MODE:
+            i --> Add / delete invite only mode
+            t --> PUt / remove restriction on TOPIC command to only channel admins
+            k --> Add /remove channel key
+            o --> Give / take operator privilige
+            l --> Add / remove user limit
+
+
+
+
+|---------------------------------------------------------|
+
+
+3. Test all possible options for the irc chat
+5. Check leaks
+
+|---------------------------------------------------------|
