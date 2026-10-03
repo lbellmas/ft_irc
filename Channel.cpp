@@ -41,6 +41,14 @@ bool Channel::isInviteOnly() const {
     return _invite_only;
 }
 
+bool Channel::isKeyNeeded() const {
+    return _key != "";
+}
+
+bool Channel::isKeyCorrect(std::string k) const{
+    return k == _key;
+}
+
 std::string Channel::getTopic() const {
     return _topic;
 }
@@ -85,6 +93,7 @@ void Channel::changeModes(IRCmd command, Client *c){
                 if (size_t(paramsIndex) < command.params.size()){
                     if (type) _key = command.params[paramsIndex++];
                     else _key = "";
+                    std::cout << _name << " has password " << _key << std::endl;
                 } else {
                     c->sendMessage(461, command.cmd + " :Not enough parameters");
                 }

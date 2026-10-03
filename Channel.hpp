@@ -42,6 +42,9 @@ class Channel{
         bool wasInvited(std::string nick) const;
         void broadcast(std::string message, Server *s);
         bool isTopicRestricted() const ;
+        bool isKeyNeeded() const;
+        bool isKeyCorrect(std::string k) const;
+        
 
         
         
