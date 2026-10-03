@@ -56,96 +56,81 @@ void cmdMsg(IRCmd command, Client *c, Server *s){
         }
     }
 }
-void cmdJoin(IRCmd command, Client *c, Server *s){ 
-    Channel *chan;
-    size_t pos;
-    bool first = true;
 
-    while (((pos = command.params[0].find(',')) != std::string::npos) || first){
-        std::string obs = command.params[0].substr(0, pos);
-        if (obs[0] == '#'){
-            if((chan = s->searchChannel(obs)) != NULL){
-                if (chan->getNumUsers() + 1 <= chan->getUserLimit() || chan->getUserLimit() == 0){
-                    std::cout << "chanInvONlyy: " << chan->isInviteOnly() << std::endl;
-                    if (chan->isInviteOnly()){
-                        if (chan->isInvited(c->getNick())){
-                            if (chan->isKeyNeeded()){
-                                if (command.params.size() < 2){
-                                    std::cout << "Theres no key!\n";
-                                    return;
-                                }
-                                size_t posKey = command.params[1].find(',');
-                                std::string key = command.params[1].substr(0, posKey);
-                                command.params[1].erase(0, posKey+1);
-                                if (chan->isKeyCorrect(key)){
-                                    std::cout << "Key was correct!" << std::endl;
-                                    chan->addClient(c->getNick());
-                                    c->addChannels(chan->getName());
-                                    std::string message = c->getPrefix() + command.cmd + " " + obs.append("\r\n");
-                                    s->sendMessage(message, c->getFd());
-                                } else {
-                                    std::cout << "Key is incorrect!" << std::endl;
-                                }
-                            }
-                            else {
-                                chan->addClient(c->getNick());
-                                c->addChannels(chan->getName());
-                                std::string message = c->getPrefix() + command.cmd + " " + obs.append("\r\n");
-                                s->sendMessage(message, c->getFd());
-                            }
-                        } else {
-                            c->sendMessage(473, chan->getName() + " :Cannot join channel (+i)");
-                        }
-                    }  else if (chan->isKeyNeeded()){
-                        if (command.params.size() < 2){
-                            //ERROR, THERE IS NO KEY
-                        } else {
-                            size_t posKey = command.params[1].find(',');
-                            std::string key = command.params[1].substr(0, posKey);
-                            command.params[1].erase(0, posKey+1);
-                            if (chan->isKeyCorrect(key)){
-                                std::cout << "Key was correct!" << std::endl;
-                                chan->addClient(c->getNick());
-                                c->addChannels(chan->getName());
-                                std::string message = c->getPrefix() + command.cmd + " " + obs.append("\r\n");
-                                s->sendMessage(message, c->getFd());
-                            } else {
-                                std::cout << "Key is incorrect!" << std::endl;
-                            }
-                        }
-                    }
-                    else {
-                        if (!chan->hasClient(c->getNick())){
-                            chan->addClient(c->getNick());
-                            c->addChannels(chan->getName());
-                            std::string message = c->getPrefix() + command.cmd + " " + obs.append("\r\n");
-                            s->sendMessage(message, c->getFd());
-                        }
-                        else {
-                            c->sendMessage(443, c->getNick() + " " + chan->getName() + " :is already on channel");
-                        }
-                    }
-                } else {
-                    c->sendMessage(471, chan->getName() + " :Cannot join channel (+l)");
-                }
-            } else {
-                std::cout << "Created Channel!" << std::endl;
-                Channel Ch(obs);
-                Ch.addClient(c->getNick());
-                Ch.addOperator(c->getNick());
-                c->addChannels(obs);
-                s->addChannel(Ch);
-                std::string message = c->getPrefix() + command.cmd + " " + obs.append("\r\n");
-                s->sendMessage(message, c->getFd());
-            }
-        } else if (obs == "0"){
-            //LEAVE ALL CHANNELS
-        } else {
-            c->sendMessage(482, c->getNick() + " " + obs + " :Bad channel mask");
-        }
-        command.params[0].erase(0, pos+1);
-        if (pos == std::string::npos){
-            first = false;}
+static std::vector<std::string> splitComma(const std::string& s) {
+    std::vector<std::string> out;
+    size_t start = 0, end;
+    while ((end = s.find(',', start)) != std::string::npos) {
+        out.push_back(s.substr(start, end - start));
+        start = end + 1;
+    }
+    out.push_back(s.substr(start));
+    return out;
+}
+
+
+static void joinSingleChannel(Client *c, Server *s, const std::string& chanName, const std::string& key) {
+    if (chanName.empty() || chanName[0] != '#') {
+        c->sendMessage(476, chanName + " :Bad Channel Mask"); // ERR_BADCHANMASK
+        return;
+    }
+
+    Channel *chan = s->searchChannel(chanName);
+
+    if (chan == NULL) {
+        std::cout << "Created Channel!" << std::endl;
+        Channel newChan(chanName);
+        newChan.addClient(c->getNick());
+        newChan.addOperator(c->getNick());
+        c->addChannels(chanName);
+        s->addChannel(newChan);
+
+        std::string msg = c->getPrefix() + "JOIN " + chanName + "\r\n";
+        s->sendMessage(msg, c->getFd());
+        return;
+    }
+
+    if (chan->hasClient(c->getNick())) {
+        c->sendMessage(443, c->getNick() + " " + chanName + " :is already on channel");
+        return;
+    }
+
+    if (chan->getUserLimit() != 0 && chan->getNumUsers() + 1 > chan->getUserLimit()) {
+        c->sendMessage(471, chanName + " :Cannot join channel (+l)");
+        return;
+    }
+
+    if (chan->isInviteOnly() && !chan->isInvited(c->getNick())) {
+        c->sendMessage(473, chanName + " :Cannot join channel (+i)");
+        return;
+    }
+
+    if (chan->isKeyNeeded() && !chan->isKeyCorrect(key)) {
+        c->sendMessage(475, chanName + " :Cannot join channel (+k)");
+        return;
+    }
+
+    chan->addClient(c->getNick());
+    c->addChannels(chanName);
+
+    std::string msg = c->getPrefix() + "JOIN " + chanName + "\r\n";
+    s->sendMessage(msg, c->getFd());
+}
+
+void cmdJoin(IRCmd command, Client *c, Server *s) {
+    if (command.params.empty()) {
+        c->sendMessage(461, "JOIN :Not enough parameters");
+        return;
+    }
+
+    std::vector<std::string> channels = splitComma(command.params[0]);
+    std::vector<std::string> keys;
+    if (command.params.size() > 1)
+        keys = splitComma(command.params[1]);
+
+    for (size_t i = 0; i < channels.size(); ++i) {
+        std::string key = (i < keys.size()) ? keys[i] : "";
+        joinSingleChannel(c, s, channels[i], key);
     }
 }
 

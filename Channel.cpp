@@ -46,6 +46,7 @@ bool Channel::isKeyNeeded() const {
 }
 
 bool Channel::isKeyCorrect(std::string k) const{
+    std::cout << k <<  "  "   << _key << std::endl;
     return k == _key;
 }
 
@@ -91,12 +92,19 @@ void Channel::changeModes(IRCmd command, Client *c){
             else if (command.params[1][i] == 't') _topic_restricted = type;
             else if (command.params[1][i] == 'k'){
                 if (size_t(paramsIndex) < command.params.size()){
-                    if (type) _key = command.params[paramsIndex++];
+                    std::cout << "Type " << type << std::endl;
+                    if (type) {
+                        if (_key != ""){
+                            c->sendMessage(476, getName() + " :Channel key already set  ");
+                            return ;
+                        }
+                        _key = command.params[paramsIndex++];
+                    }
                     else _key = "";
-                    std::cout << _name << " has password " << _key << std::endl;
                 } else {
                     c->sendMessage(461, command.cmd + " :Not enough parameters");
                 }
+                std::cout << "key " << _key << std::endl;
             }
             else if (command.params[1][i] == 'o') {
                 if (size_t(paramsIndex) < command.params.size()){
