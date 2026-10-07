@@ -28,6 +28,7 @@ class Channel{
         void addClient(std::string client);
         void addOperator(std::string client);
         void removeClient(std::string client);
+        void removeUser(std::string client);
         bool hasClient(std::string client) const;
         bool isInviteOnly() const;
         std::string getTopic() const;

@@ -29,6 +29,8 @@ class Server
         void recieveData(int fd);
         void clientDesconected(int fd);
         void sendMessage(std::string message, int fd);
+        void sendPendingData(int fd);
+        void updatePollEvents();
         void addNick(std::string, int fd);
         void runCommand(IRCmd command, Client * c);
         Client *searchClient(int fd);

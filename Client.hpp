@@ -20,6 +20,7 @@ class Client
         std::string username;
         std::string realname;
         std::string buffer;
+        std::string outputBuffer;
         bool isPassSet;
         bool isUserSet;
         bool isNickSet;
@@ -44,6 +45,8 @@ class Client
         void setReal(std::string real);
         void setBuffer(std::string buff);
         void addBuffer(std::string buff);
+        void addOutput(std::string output);
+        std::string &getOutput();
 
         void setStatus(int status);
         void setOperator(bool status);

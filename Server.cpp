@@ -3,7 +3,7 @@
 
 void Server::init()
 {
-    _serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    _serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     struct sockaddr_in direccion;
     direccion.sin_family = AF_INET;
     direccion.sin_addr.s_addr = INADDR_ANY;
@@ -23,15 +23,36 @@ void Server::run()
 
     while (true)
     {
+        updatePollEvents();
         if (poll(_fds.data(), _fds.size(), -1) < 0)
             exit(0);
 
         if (_fds[0].revents & POLLIN)
             acceptClient();
-        for (size_t i = 1; i < _fds.size(); i++)
+        for (size_t i = 1; i < _fds.size(); )
         {
-            if (_fds[i].revents & POLLIN)
-                recieveData(_fds[i].fd);
+            int fd = _fds[i].fd;
+            if (_fds[i].revents & (POLLERR | POLLNVAL))
+            {
+                clientDesconected(fd);
+            }
+            else if (_fds[i].revents & POLLIN)
+            {
+                recieveData(fd);
+                if (i < _fds.size() && _fds[i].fd == fd)
+                    ++i;
+            }
+            else if (_fds[i].revents & POLLOUT)
+            {
+                sendPendingData(fd);
+                ++i;
+            }
+            else if (_fds[i].revents & POLLHUP)
+            {
+                clientDesconected(fd);
+            }
+            else
+                ++i;
         }
         /*if (_fds.size() == 1)
             break ;*/
@@ -41,7 +62,8 @@ void Server::acceptClient()
 {
     struct sockaddr_in clientAddr;
     socklen_t addrLen = sizeof(clientAddr);
-    int clientSocket = accept(_fds[0].fd, (struct sockaddr*)&clientAddr, &addrLen);
+    int clientSocket = accept4(_fds[0].fd, (struct sockaddr*)&clientAddr,
+        &addrLen, SOCK_NONBLOCK);
     if (clientSocket < 0)
     {
         std::cout << "client has filed joining" << std::endl;
@@ -65,12 +87,16 @@ void Server::recieveData(int fd)
         return (clientDesconected(fd));
     buffer[bytes] = '\0';
     Client *cli = searchClient(fd);
+    if (cli == NULL)
+        return ;
     cli->addBuffer(buffer);
     while ((pos = cli->getBuff().find("\r\n")) != std::string::npos){
         std::string commandStr = cli->getBuff().substr(0,pos);
         cli->setBuffer(cli->getBuff().erase(0, pos+2));
         IRCmd cmd = getCommand(commandStr);
         runCommand(cmd, cli);
+        if (searchClient(fd) == NULL)
+            return ;
     }    
 }
 void Server::runCommand(IRCmd command, Client *c){
@@ -80,6 +106,10 @@ void Server::runCommand(IRCmd command, Client *c){
     }
     if (c->isUnReg()){
         if(command.cmd == "PASS"){
+            if (command.params.size() < 1){
+                c->sendMessage(461, "PASS :Not enough parameters");
+                return ;
+            }
             if (c->getNickSet() && c->getUserSet()){
                 c->sendMessage(462, ":Unauthorized command (already registered)");
                 clientDesconected(c->getFd());
@@ -88,14 +118,17 @@ void Server::runCommand(IRCmd command, Client *c){
             if (command.params[0] != _password){
                 c->sendMessage(464, ":Password incorrect");
                 clientDesconected(c->getFd());
-                //return ;
+                return ;
             }
             c->setPass();
         }
         else if (command.cmd == "NICK"){
+            if (command.params.size() < 1){
+                c->sendMessage(431, ":No nickname given");
+                return ;
+            }
             if (c->getUserSet() && !c->getPassSet()){
                 c->sendMessage(464, ":Password incorrect");
-                //send(c->getFd(), message.c_str(), message.size(), 0);
                 clientDesconected(c->getFd());
                 return ;
             }
@@ -111,6 +144,10 @@ void Server::runCommand(IRCmd command, Client *c){
             } 
         }
         else if (command.cmd == "USER"){
+            if (command.params.size() < 1){
+                c->sendMessage(461, "USER :Not enough parameters");
+                return ;
+            }
             if (c->getNickSet() && !c->getPassSet()){
                 c->sendMessage(464, ":Password incorrect");
                 clientDesconected(c->getFd());
@@ -120,15 +157,11 @@ void Server::runCommand(IRCmd command, Client *c){
                 c->setUserSet();
             } 
         } else if (command.cmd == "CAP"){
-            if (command.params[0] == "LS"){
+            if (command.params.size() > 0 && command.params[0] == "LS"){
                 sendMessage(":server CAP * LS :\r\n", c->getFd());
             }
         }
         else{
-            std::cout << "cmd.cmd: " << command.cmd << std::endl;
-            for (size_t i = 0; i < command.params.size(); i++){
-                std::cout << "cmd.params: " << command.params[i] << std::endl;
-            }
             c->sendMessage(451, ":You have not registered");
             clientDesconected(c->getFd());
             return ;
@@ -172,8 +205,6 @@ void Server::runCommand(IRCmd command, Client *c){
         }
         else if (command.cmd != "CAP" && command.cmd != "WHO"){
             c->sendMessage(421, c->getNick() + " " + command.cmd + " :Unknown command");
-            std::string message = "UNKNOWN COMMAND\r\n";
-            send(c->getFd(), message.c_str(), message.size(), 0);
             return;
         }
     }
@@ -181,30 +212,60 @@ void Server::runCommand(IRCmd command, Client *c){
 
 void Server::clientDesconected(int fd)
 {
+    std::string nickname;
+    Client *client = searchClient(fd);
+    if (client != NULL)
+        nickname = client->getNick();
+
     for (size_t i = 0; i < _fds.size(); i++)
     {
         if (_fds[i].fd == fd)
         {
-            close(fd);
             _fds.erase(_fds.begin() + i);
-            std::cout << "client" << " disconected" << std::endl;
             break;
         }
+    }
+    if (!nickname.empty())
+    {
+        for (size_t i = 0; i < _channels.size(); i++)
+            _channels[i].removeUser(nickname);
     }
     for (size_t i = 0; i < _clients.size(); i++)
     {
         if (_clients[i].getFd() == fd)
         {
-            close(fd);
             _clients.erase(_clients.begin() + i);
-            std::cout << "client" << " disconected" << std::endl;
             break ;
         }
     }
+    close(fd);
+    std::cout << "client" << " disconected" << std::endl;
 }
 void Server::sendMessage(std::string message, int fd)
 {
-    send(fd, message.c_str(), message.size(), 0);
+    Client *client = searchClient(fd);
+    if (client != NULL)
+        client->addOutput(message);
+}
+void Server::sendPendingData(int fd)
+{
+    Client *client = searchClient(fd);
+    if (client == NULL || client->getOutput().empty())
+        return ;
+    std::string &output = client->getOutput();
+    int bytes = send(fd, output.c_str(), output.size(), 0);
+    if (bytes > 0)
+        output.erase(0, bytes);
+}
+void Server::updatePollEvents()
+{
+    for (size_t i = 1; i < _fds.size(); i++)
+    {
+        Client *client = searchClient(_fds[i].fd);
+        _fds[i].events = POLLIN;
+        if (client != NULL && !client->getOutput().empty())
+            _fds[i].events |= POLLOUT;
+    }
 }
 void Server::addNick(std::string nick, int fd)
 {

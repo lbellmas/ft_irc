@@ -54,6 +54,14 @@ void Client::addBuffer(std::string buff)
 {
     buffer += buff;
 }
+void Client::addOutput(std::string output)
+{
+    outputBuffer += output;
+}
+std::string &Client::getOutput()
+{
+    return outputBuffer;
+}
 // void Client::setStatus(int status); este ns como va
 void Client::setOperator(bool status)
 {
@@ -152,5 +160,5 @@ void Client::sendMessage(int code, std::string message){
         << (nickname.empty() ? "*" : nickname) << " "
         << message << "\r\n";
     std::cout << oss.str() << std::endl;
-    send(fd, oss.str().c_str(), oss.str().size(), 0); 
+    addOutput(oss.str());
 }

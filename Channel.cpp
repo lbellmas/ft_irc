@@ -37,6 +37,29 @@ void Channel::removeClient(std::string client){
     }
 }
 
+void Channel::removeUser(std::string client){
+    std::vector<std::string>::iterator it;
+
+    for (it = _clients.begin(); it != _clients.end(); ){
+        if (*it == client)
+            it = _clients.erase(it);
+        else
+            ++it;
+    }
+    for (it = _operators.begin(); it != _operators.end(); ){
+        if (*it == client)
+            it = _operators.erase(it);
+        else
+            ++it;
+    }
+    for (it = _invited.begin(); it != _invited.end(); ){
+        if (*it == client)
+            it = _invited.erase(it);
+        else
+            ++it;
+    }
+}
+
 bool Channel::isInviteOnly() const {
     return _invite_only;
 }
@@ -79,13 +102,16 @@ void Channel::addOperator(std::string client){
 void Channel::changeModes(IRCmd command, Client *c){
     bool type = false;
     if (command.params.size() > 1){
+        if (command.params[1].empty()){
+            c->sendMessage(472, " :is unknown mode char to me");
+            return ;
+        }
         if (command.params[1][0] != '+' && command.params[1][0] != '-'){
             c->sendMessage(472, std::string(1, command.params[1][0]) + " :is unknown mode char to me");
             return ;
         } 
         int paramsIndex = 2;
-        for (size_t i = 0; i < command.params[0].size(); i++){
-            std::cout << "params[i] = " << command.params[0][i] << std::endl; 
+        for (size_t i = 0; i < command.params[1].size(); i++){
             if (command.params[1][i] == '+') type = true;
             else if (command.params[1][i] == '-') type = false;
             else if (command.params[1][i] == 'i') _invite_only = type;
@@ -103,6 +129,7 @@ void Channel::changeModes(IRCmd command, Client *c){
                     else _key = "";
                 } else {
                     c->sendMessage(461, command.cmd + " :Not enough parameters");
+                    return ;
                 }
                 std::cout << "key " << _key << std::endl;
             }
@@ -113,8 +140,11 @@ void Channel::changeModes(IRCmd command, Client *c){
                             _operators.push_back(command.params[paramsIndex++]);
                         } else {
                             std::vector<std::string>::iterator it;
-                            for(it = _operators.begin(); it != _operators.end(); it++){
-                                if (*it == command.params[paramsIndex]) _operators.erase(it);
+                            for(it = _operators.begin(); it != _operators.end(); ++it){
+                                if (*it == command.params[paramsIndex]) {
+                                    _operators.erase(it);
+                                    break;
+                                }
                             }
                             if (it == _operators.end()){
                                 c->sendMessage(482, getName() + " :You're not channel operator");
@@ -126,9 +156,10 @@ void Channel::changeModes(IRCmd command, Client *c){
                     }
                 } else {
                     c->sendMessage(461, command.cmd + " :Not enough parameters");
+                    return ;
                 }
             }
-            else if (command.params[0][i] == 'l'){
+            else if (command.params[1][i] == 'l'){
                 if (size_t(paramsIndex) < command.params.size()){
                     if (type) {
                         int limit = std::atoi(command.params[paramsIndex++].c_str());
@@ -138,6 +169,7 @@ void Channel::changeModes(IRCmd command, Client *c){
                     else _user_limit = 0;
                 } else {
                     c->sendMessage(461, command.cmd + " :Not enough parameters");
+                    return ;
                 }
             } 
         }
@@ -168,7 +200,9 @@ bool Channel::wasInvited(std::string nick) const{
 void Channel::broadcast(std::string message, Server *s){
     for(size_t i = 0; i < _clients.size(); i++){
         
-        send(s->searchClient(_clients[i])->getFd(), message.c_str(), message.size(), 0);
+        Client *client = s->searchClient(_clients[i]);
+        if (client != NULL)
+            s->sendMessage(message, client->getFd());
     }
 }
 

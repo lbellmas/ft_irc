@@ -5,6 +5,9 @@
 
 IRCmd getCommand(std::string buffer){
     IRCmd cmd;
+    cmd.cmd = "";
+    if (buffer.empty())
+        return cmd;
     std::string params;
     std::string prefix;
     std::istringstream ss(buffer);
@@ -31,6 +34,10 @@ IRCmd getCommand(std::string buffer){
 void cmdMsg(IRCmd command, Client *c, Server *s){
     if (command.params.size() < 2){
         c->sendMessage(461, "PRIVMSG :Not enough parameters");
+        return ;
+    }
+    if (command.params[0].empty()){
+        c->sendMessage(461, "PRIVMSG :No recipient");
         return ;
     }
     if (command.params[0][0] == '#'){
@@ -91,6 +98,7 @@ static void joinSingleChannel(Client *c, Server *s, const std::string& chanName,
 
         std::string msg = c->getPrefix() + "JOIN " + chanName + "\r\n";
         s->sendMessage(msg, c->getFd());
+        c->sendMessage(331, chanName + " :No topic is set");
         return;
     }
 
@@ -119,6 +127,10 @@ static void joinSingleChannel(Client *c, Server *s, const std::string& chanName,
 
     std::string msg = c->getPrefix() + "JOIN " + chanName + "\r\n";
     s->sendMessage(msg, c->getFd());
+    if (chan->getTopic().empty())
+        c->sendMessage(331, chanName + " :No topic is set");
+    else
+        c->sendMessage(332, chanName + " :" + chan->getTopic());
 }
 
 void cmdJoin(IRCmd command, Client *c, Server *s) {
@@ -144,7 +156,10 @@ void cmdMode(IRCmd command, Client *c, Server *s){
         c->sendMessage(461, "MODE :Not enough parameters");
         return ;
     }
+    std::cout << "cmd.params.size(): " << command.params.size() << std::endl;
+    //if (command.params.size() > 2){
         if ((ch = s->searchChannel(command.params[0])) != NULL){
+            std::cout << "Channel found" << std::endl;
             if (ch->isOperator(c->getNick())){
                 ch->changeModes(command, c);
             } else if (ch->hasClient(c->getNick())){
@@ -153,8 +168,10 @@ void cmdMode(IRCmd command, Client *c, Server *s){
                 c->sendMessage(442, ch->getName() + " :You're not on that channel");
             }
         } else {
-            c->sendMessage(403, ch->getName() + " :No such channel");
+            std::cout << "Channel not found" << std::endl;
+            c->sendMessage(403, command.params[0] + " :No such channel");
         }
+    //}
 }
 
 void cmdTopic(IRCmd command, Client *c, Server *s){
@@ -173,7 +190,7 @@ void cmdTopic(IRCmd command, Client *c, Server *s){
                 else
                     c->sendMessage(332, ch->getName() + " :" + topic);
             } else {
-                if (ch->isOperator(c->getNick()) && !ch->isTopicRestricted()){
+                if (ch->isOperator(c->getNick()) || !ch->isTopicRestricted()){
                     ch->changeTopic(command.params[1]);
                 } else {
                     c->sendMessage(482, ch->getName() + " :You're not channel operator");
@@ -195,18 +212,25 @@ void cmdTopic(IRCmd command, Client *c, Server *s){
 }
 
 void cmdKick(IRCmd command, Client *c, Server *s){
+    if (command.params.size() < 2){
+        c->sendMessage(461, "KICK :Not enough parameters");
+        return ;
+    }
     Channel *ch = s->searchChannel(command.params[0]);
     if (ch != NULL){
             Client *cli = s->searchClient(command.params[1]);
             if (cli != NULL){
                 if (!ch->hasClient(c->getNick())){
                     c->sendMessage(442, ch->getName() + " :You're not on that channel");
+                    return ;
                 }
                 if (!ch->isOperator(c->getNick())){
                     c->sendMessage(482, ch->getName() + " :You're not channel operator");
+                    return ;
                 }
                 if (!ch->hasClient(cli->getNick())){
                     c->sendMessage(441, cli->getNick() + " " + ch->getName() + " :They aren't on that channel");
+                    return ;
                 }
                 
                 std::string reason = "";
@@ -226,6 +250,10 @@ void cmdKick(IRCmd command, Client *c, Server *s){
 }
 
 void cmdInvite(IRCmd command, Client *c, Server *s){
+    if (command.params.size() < 2){
+        c->sendMessage(461, "INVITE :Not enough parameters");
+        return ;
+    }
     Channel *ch = s->searchChannel(command.params[1]);
     if (ch != NULL){
         Client *cli = s->searchClient(command.params[0]);
