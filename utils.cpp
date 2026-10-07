@@ -144,10 +144,7 @@ void cmdMode(IRCmd command, Client *c, Server *s){
         c->sendMessage(461, "MODE :Not enough parameters");
         return ;
     }
-    std::cout << "cmd.params.size(): " << command.params.size() << std::endl;
-    //if (command.params.size() > 2){
         if ((ch = s->searchChannel(command.params[0])) != NULL){
-            std::cout << "Channel found" << std::endl;
             if (ch->isOperator(c->getNick())){
                 ch->changeModes(command, c);
             } else if (ch->hasClient(c->getNick())){
@@ -156,10 +153,8 @@ void cmdMode(IRCmd command, Client *c, Server *s){
                 c->sendMessage(442, ch->getName() + " :You're not on that channel");
             }
         } else {
-            std::cout << "Channel not found" << std::endl;
             c->sendMessage(403, ch->getName() + " :No such channel");
         }
-    //}
 }
 
 void cmdTopic(IRCmd command, Client *c, Server *s){
