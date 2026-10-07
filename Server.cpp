@@ -33,8 +33,8 @@ void Server::run()
             if (_fds[i].revents & POLLIN)
                 recieveData(_fds[i].fd);
         }
-        if (_fds.size() == 1)
-            break ;
+        /*if (_fds.size() == 1)
+            break ;*/
     }
 }
 void Server::acceptClient()
@@ -103,7 +103,6 @@ void Server::runCommand(IRCmd command, Client *c){
                 for(size_t i = 0; i < _clients.size(); i++){
                     if (command.params[0] == _clients[i].getNick()){
                         c->sendMessage(433, ":Nickname is already in use");
-                        //send(c->getFd(), message.c_str(), message.size(), 0);
                         return ;
                     }
                 }
@@ -114,8 +113,6 @@ void Server::runCommand(IRCmd command, Client *c){
         else if (command.cmd == "USER"){
             if (c->getNickSet() && !c->getPassSet()){
                 c->sendMessage(464, ":Password incorrect");
-                //std::string message = "464 PASSWDMISMATCH\r\n";
-                //send(c->getFd(), message.c_str(), message.size(), 0);
                 clientDesconected(c->getFd());
                 return ;
             }else {
@@ -133,8 +130,6 @@ void Server::runCommand(IRCmd command, Client *c){
                 std::cout << "cmd.params: " << command.params[i] << std::endl;
             }
             c->sendMessage(451, ":You have not registered");
-            //std::string message = "Not registered\r\n";
-            //send(c->getFd(), message.c_str(), message.size(), 0);
             clientDesconected(c->getFd());
             return ;
         }
@@ -146,9 +141,6 @@ void Server::runCommand(IRCmd command, Client *c){
     } else {
         if (command.cmd == "PASS" || command.cmd == "USER"){
             c->sendMessage(462, ":Unauthorized command (already registered)");
-            //std::string message = "462 ERR_ALREADYREGISTERED\r\n";
-            //send(c->getFd(), message.c_str(), message.size(), 0);
-            //return;
         }
         else if (command.cmd == "PRIVMSG") {
             cmdMsg(command, c, this);
@@ -165,6 +157,18 @@ void Server::runCommand(IRCmd command, Client *c){
         }
         else if (command.cmd == "TOPIC"){
             cmdTopic(command, c, this);
+        } else if (command.cmd == "NICK"){
+            if (command.params.size() < 1){
+                c->sendMessage(431, ":No nickname given");
+                return ;
+            }
+            for(size_t i = 0; i < _clients.size(); i++){
+                if (command.params[0] == _clients[i].getNick()){
+                    c->sendMessage(433, ":Nickname is already in use");
+                    return ;
+                }
+            }
+            c->setNick(command.params[0]);
         }
         else if (command.cmd != "CAP" && command.cmd != "WHO"){
             c->sendMessage(421, c->getNick() + " " + command.cmd + " :Unknown command");

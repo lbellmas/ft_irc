@@ -29,6 +29,10 @@ IRCmd getCommand(std::string buffer){
 }
 
 void cmdMsg(IRCmd command, Client *c, Server *s){
+    if (command.params.size() < 2){
+        c->sendMessage(461, "PRIVMSG :Not enough parameters");
+        return ;
+    }
     if (command.params[0][0] == '#'){
         Channel *chan;
         std::string name = command.params[0];
@@ -71,7 +75,7 @@ static std::vector<std::string> splitComma(const std::string& s) {
 
 static void joinSingleChannel(Client *c, Server *s, const std::string& chanName, const std::string& key) {
     if (chanName.empty() || chanName[0] != '#') {
-        c->sendMessage(476, chanName + " :Bad Channel Mask"); // ERR_BADCHANMASK
+        c->sendMessage(476, chanName + " :Bad Channel Mask");
         return;
     }
 
@@ -136,8 +140,14 @@ void cmdJoin(IRCmd command, Client *c, Server *s) {
 
 void cmdMode(IRCmd command, Client *c, Server *s){
     Channel *ch;
-    if (command.params.size() > 2){
+    if (command.params.size() < 2){
+        c->sendMessage(461, "MODE :Not enough parameters");
+        return ;
+    }
+    std::cout << "cmd.params.size(): " << command.params.size() << std::endl;
+    //if (command.params.size() > 2){
         if ((ch = s->searchChannel(command.params[0])) != NULL){
+            std::cout << "Channel found" << std::endl;
             if (ch->isOperator(c->getNick())){
                 ch->changeModes(command, c);
             } else if (ch->hasClient(c->getNick())){
@@ -146,13 +156,18 @@ void cmdMode(IRCmd command, Client *c, Server *s){
                 c->sendMessage(442, ch->getName() + " :You're not on that channel");
             }
         } else {
+            std::cout << "Channel not found" << std::endl;
             c->sendMessage(403, ch->getName() + " :No such channel");
         }
-    }
+    //}
 }
 
 void cmdTopic(IRCmd command, Client *c, Server *s){
     Channel *ch;
+    if (command.params.size() < 1){
+        c->sendMessage(461, "TOPIC :Not enough parameters");
+        return ;
+    }
     if ((ch = s->searchChannel(command.params[0])) != NULL){
         if (ch->hasClient(c->getNick())){
             std::cout << "CLient in channel!\n"; 
